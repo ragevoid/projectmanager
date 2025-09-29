@@ -1,7 +1,10 @@
 package com.desafio.projectmanager.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -19,8 +23,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.model.projeto.ClassificacaoRisco;
 import com.desafio.projectmanager.model.projeto.Projeto;
+import com.desafio.projectmanager.model.projeto.StatusProjeto;
 import com.desafio.projectmanager.repository.ProjetoRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -135,6 +141,90 @@ public class ProjetoServiceTest {
 
         Projeto projetoGuardado = projetoCaptor.getValue();
         assertEquals(ClassificacaoRisco.ALTO, projetoGuardado.getClassificacaoRisco());
+    }
+
+    @Test
+    void eliminarProjeto_deveriaSalvarProjetoComDeletedTrue_quandoStatusEmAnalise() {
+        UUID uuid = UUID.randomUUID();
+
+        Projeto projeto = new Projeto();
+        projeto.setId(uuid);
+        projeto.setNome("Projeto Apollo");
+        projeto.setStatus(StatusProjeto.EM_ANALISE);
+        projeto.setDeleted(false);
+
+        when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
+
+        Projeto projetoEliminado = projetoService.eliminarProjeto(uuid);
+
+        verify(projetoRepository, times(1)).save(projeto);
+        verify(projetoRepository, times(1)).findById(uuid);
+
+        assertNotNull(projetoEliminado);
+        assertTrue(projetoEliminado.getDeleted());
+        assertEquals("Projeto Apollo", projetoEliminado.getNome());
+    }
+
+    @Test
+    void eliminarProjeto_deveriaRetornarBusinessException_quandoStatusIniciado() {
+        UUID uuid = UUID.randomUUID();
+
+        Projeto projeto = new Projeto();
+        projeto.setId(uuid);
+        projeto.setNome("Projeto Apollo");
+        projeto.setStatus(StatusProjeto.INICIADO);
+        projeto.setDeleted(false);
+
+        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            projetoService.eliminarProjeto(uuid);
+        });
+
+        assertEquals("Projeto não pode ser eliminado, Verifique Status", exception.getMessage());
+
+        verify(projetoRepository, times(0)).save(projeto);
+        verify(projetoRepository, times(1)).findById(uuid);
+
+    }
+
+    @Test
+    void encontrarPorId_deveriaRetornarIllegalArgumentException_quandoProjetoNãoExiste() {
+        UUID uuid = UUID.randomUUID();
+
+        Projeto projeto = new Projeto();
+        projeto.setId(uuid);
+        projeto.setNome("Projeto Apollo");
+
+        when(projetoRepository.findById(uuid)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            projetoService.eliminarProjeto(uuid);
+        });
+
+        assertEquals("Projeto não encontrado con ID: " + uuid, exception.getMessage());
+
+        verify(projetoRepository, times(1)).findById(uuid);
+
+    }
+
+    @Test
+    void encontrarPorId_deveriaRetornarProjeto_quandoProjetoExiste() {
+        UUID uuid = UUID.randomUUID();
+        Projeto projeto = new Projeto();
+        projeto.setId(uuid);
+        projeto.setNome("Projeto Apollo");
+
+        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
+
+        Projeto projetoEncontrado = projetoService.encontrarPorId(uuid);
+
+        verify(projetoRepository, times(1)).findById(uuid);
+
+        assertNotNull(projetoEncontrado);
+        assertEquals("Projeto Apollo", projetoEncontrado.getNome());
+
     }
 
 }
