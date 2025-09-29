@@ -1,8 +1,37 @@
 # Project Manager 
 Sistema para gerenciar o Portfólio de Projetos.
 
-## Descripción del Proyecto
-    **Project Manager ** permite o acompanhamento completo do ciclo de vida de projetos, desde a análise de viabilidade até a finalização, incluindo gerenciamento de equipe, orçamento e risco.
+## Descripção do Projeto
+**Project Manager** permite o acompanhamento completo do ciclo de vida de projetos, desde a análise de viabilidade até a finalização, incluindo gerenciamento de equipe, orçamento e risco.
+
+## Entidades
+* **Membro**
+    * nome
+    * password
+    * empresa
+    * atribuicao
+    * projetos
+    * deleted
+
+* **Empresa**
+    * nome
+    * membros
+    * projetos
+    * deleted
+    
+* **Projeto**
+    * nome
+    * dataInicio
+    * dataFinalPrevisao
+    * dataFinalReal
+    * orcamento
+    * descricao
+    * status     
+    * classificacaoRisco;
+    * gerente
+    * membros
+    * empresa
+    * deleted
 
 ## Regras de Negócio
 * **O sistema deve permitir CRUD completo de projetos com os seguintes campos:**
