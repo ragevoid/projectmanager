@@ -1,6 +1,8 @@
 package com.desafio.projectmanager.model.membro;
 
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.desafio.projectmanager.model.empresa.Empresa;
@@ -54,7 +56,7 @@ public class Membro {
         joinColumns = @JoinColumn(name = "membro_id"),
         inverseJoinColumns = @JoinColumn(name = "projeto_id")
     )
-    private Projeto projetos;
+    private Set<Projeto> projetos= new HashSet<>();
 
     @Column(nullable = false)
     private Boolean deleted = false;

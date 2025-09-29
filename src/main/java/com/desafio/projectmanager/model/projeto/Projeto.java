@@ -2,7 +2,8 @@ package com.desafio.projectmanager.model.projeto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.desafio.projectmanager.model.empresa.Empresa;
@@ -60,16 +61,14 @@ public class Projeto {
     @Enumerated(EnumType.STRING)
     private ClassificacaoRisco classificacaoRisco;
 
-    @Column(nullable = false)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "membro_id", nullable = false)
     private Membro gerente;
 
     @Column(nullable = false)
     @ManyToMany(mappedBy = "projetos")
-    private List<Membro> membros;
+    private Set<Membro> membros= new HashSet<>();
 
-    @Column(nullable = false)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
