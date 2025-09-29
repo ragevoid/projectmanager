@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: projectmanager-db
+    ports:
+      - "5454:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=ppqqll13
+      - POSTGRES_DB=projectmanager
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - projectmanager-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d projectmanager"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+
+networks:
+  projectmanager-network:
+    driver: bridge
