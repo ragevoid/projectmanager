@@ -32,8 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-### ENV ###
-.env
-
 ### CONFIG ###
 src/main/java/com/desafio/projectmanager/config
+src/main/resources/application-local.properties

@@ -27,11 +27,6 @@ public class ProjetoService {
                 .collect(Collectors.toList());
     }
 
-    public Projeto encontrarPorId(UUID projetoId) {
-        return projetoRepository.findById(projetoId)
-                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado con ID: " + projetoId));
-    }
-
     public Projeto eliminarProjeto(UUID projetoId) {
         Projeto projeto = encontrarPorId(projetoId);
         StatusProjeto status = projeto.getStatus();
@@ -44,24 +39,28 @@ public class ProjetoService {
         return projetoRepository.save(projeto);
     }
 
-    public Projeto CrearProjeto(Projeto projeto) {
+    public Projeto salvarProjeto(Projeto projeto) {
         ClassificacaoRisco risco = validarRisco(projeto);
         projeto.setClassificacaoRisco(risco);
         return projetoRepository.save(projeto);
     }
 
+    public Projeto encontrarPorId(UUID projetoId) {
+        return projetoRepository.findByIdAndDeletedFalse(projetoId)
+                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado con ID: " + projetoId));
+    }
+
+
     public ClassificacaoRisco validarRisco(Projeto projeto) {
 
         long mesesTotais = CalcularMesesTotais(projeto);
         double orcamentoDouble = projeto.getOrcamento().doubleValue();
-
         if (esRiscoAlto(mesesTotais, orcamentoDouble)) {
             return ClassificacaoRisco.ALTO;
         }
         if (esRiscoBajo(mesesTotais, orcamentoDouble)) {
             return ClassificacaoRisco.BAIXO;
         }
-
         return ClassificacaoRisco.MEDIO;
     }
 

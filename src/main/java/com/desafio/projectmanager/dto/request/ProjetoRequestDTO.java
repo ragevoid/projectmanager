@@ -1,18 +1,16 @@
-package com.desafio.projectmanager.dto.response;
+package com.desafio.projectmanager.dto.request;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
-import com.desafio.projectmanager.model.projeto.ClassificacaoRisco;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
 
 import lombok.Data;
 
 @Data
-public class ProjetoResponseDTO {
-    private UUID id;
+public class ProjetoRequestDTO {
     private String nome;
     private LocalDateTime dataInicio;
     private LocalDateTime dataFinalPrevisao;
@@ -20,9 +18,7 @@ public class ProjetoResponseDTO {
     private BigDecimal orcamento;
     private String descricao;
     private StatusProjeto status;
-    private ClassificacaoRisco classificacaoRisco;
     private UUID gerenteId;
-    private Set<MembroResponseDTO> membros;
+    private Set<UUID> membrosIds;
     private UUID empresaId;
-    private Boolean deleted;
 }

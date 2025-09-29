@@ -1,7 +1,6 @@
 package com.desafio.projectmanager.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,7 +78,7 @@ public class ProjetoServiceTest {
 
         when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Projeto projetoCriado = projetoService.CrearProjeto(projetoParaTestar);
+        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
 
         assertNotNull(projetoCriado);
         assertEquals(ClassificacaoRisco.BAIXO, projetoCriado.getClassificacaoRisco());
@@ -105,7 +104,7 @@ public class ProjetoServiceTest {
 
         when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Projeto projetoCriado = projetoService.CrearProjeto(projetoParaTestar);
+        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
 
         assertNotNull(projetoCriado);
         assertEquals(ClassificacaoRisco.MEDIO, projetoCriado.getClassificacaoRisco());
@@ -131,7 +130,7 @@ public class ProjetoServiceTest {
 
         when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Projeto projetoCriado = projetoService.CrearProjeto(projetoParaTestar);
+        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
 
         assertNotNull(projetoCriado);
         assertEquals(ClassificacaoRisco.ALTO, projetoCriado.getClassificacaoRisco());
