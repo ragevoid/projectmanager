@@ -3,12 +3,15 @@ package com.desafio.projectmanager.service;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.model.projeto.ClassificacaoRisco;
 import com.desafio.projectmanager.model.projeto.Projeto;
+import com.desafio.projectmanager.model.projeto.StatusProjeto;
 import com.desafio.projectmanager.repository.ProjetoRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProjetoService {
+
     private final ProjetoRepository projetoRepository;
 
     public List<Projeto> listarProjetos() {
@@ -23,8 +27,25 @@ public class ProjetoService {
                 .collect(Collectors.toList());
     }
 
-    public Projeto CrearProjeto(Projeto projeto){
-        ClassificacaoRisco risco= validarRisco(projeto);
+    public Projeto encontrarPorId(UUID projetoId) {
+        return projetoRepository.findById(projetoId)
+                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado con ID: " + projetoId));
+    }
+
+    public Projeto eliminarProjeto(UUID projetoId) {
+        Projeto projeto = encontrarPorId(projetoId);
+        StatusProjeto status = projeto.getStatus();
+
+        if (status == StatusProjeto.INICIADO || status == StatusProjeto.EM_ANDAMENTO
+                || status == StatusProjeto.ENCERRADO) {
+            throw new BusinessException("Projeto não pode ser eliminado, Verifique Status");
+        }
+        projeto.setDeleted(true);
+        return projetoRepository.save(projeto);
+    }
+
+    public Projeto CrearProjeto(Projeto projeto) {
+        ClassificacaoRisco risco = validarRisco(projeto);
         projeto.setClassificacaoRisco(risco);
         return projetoRepository.save(projeto);
     }
@@ -35,12 +56,12 @@ public class ProjetoService {
         double orcamentoDouble = projeto.getOrcamento().doubleValue();
 
         if (esRiscoAlto(mesesTotais, orcamentoDouble)) {
-        return ClassificacaoRisco.ALTO;
+            return ClassificacaoRisco.ALTO;
         }
         if (esRiscoBajo(mesesTotais, orcamentoDouble)) {
             return ClassificacaoRisco.BAIXO;
         }
-        
+
         return ClassificacaoRisco.MEDIO;
     }
 
@@ -55,13 +76,11 @@ public class ProjetoService {
         boolean verificaOrcamento = orcamento < 100001;
         return verificaMeses && verificaOrcamento;
     }
-       public boolean esRiscoAlto(Long mesesTotais, double orcamento) {
+
+    public boolean esRiscoAlto(Long mesesTotais, double orcamento) {
         boolean verificaMeses = mesesTotais > 6;
         boolean verificaOrcamento = orcamento > 500000;
         return verificaMeses || verificaOrcamento;
     }
-
-
-
 
 }
