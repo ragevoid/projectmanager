@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### ENV ###
+.env
+
+### CONFIG ###
+src/main/java/com/desafio/projectmanager/config

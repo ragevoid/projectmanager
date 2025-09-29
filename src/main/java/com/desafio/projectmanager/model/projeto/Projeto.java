@@ -44,7 +44,7 @@ public class Projeto {
     @Column(nullable = false)
     private LocalDateTime dataFinalPrevisao;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime dataFinalReal;
 
     @Column(nullable = false)
@@ -54,10 +54,10 @@ public class Projeto {
     private String descricao;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private StatusProjeto status;
+    @Enumerated(EnumType.ORDINAL)
+    private StatusProjeto status = StatusProjeto.EM_ANALISE;
 
-    @Column(nullable = false)
+    @Column
     @Enumerated(EnumType.STRING)
     private ClassificacaoRisco classificacaoRisco;
 
