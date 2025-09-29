@@ -9,6 +9,8 @@ import java.util.UUID;
 
 import com.desafio.projectmanager.model.membro.Membro;
 import com.desafio.projectmanager.model.projeto.Projeto;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -32,6 +34,7 @@ public class Empresa {
     @Column(nullable = false)
     private String nome;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)
     private List<Membro> membros;
 

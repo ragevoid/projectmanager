@@ -7,6 +7,9 @@ import java.util.UUID;
 
 import com.desafio.projectmanager.model.empresa.Empresa;
 import com.desafio.projectmanager.model.projeto.Projeto;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +44,7 @@ public class Membro {
     @Column(nullable = false)
     private String password;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
@@ -49,8 +53,8 @@ public class Membro {
     @Column(nullable = false)
     private Atribuicao atribuicao;
 
-    @Column
     @ManyToMany
+    @JsonBackReference
     @JoinTable(
         name = "membro_projeto",
         joinColumns = @JoinColumn(name = "membro_id"),

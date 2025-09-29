@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.desafio.projectmanager.model.membro.Membro;
+import com.desafio.projectmanager.model.projeto.Projeto;
 import com.desafio.projectmanager.repository.MembroRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +18,7 @@ public class MembroService {
     private final ProjetoService projetoService;
 
     public List<Membro> listarMembros() {
-        return membroRepository.findAllByDeletedFalse().stream()
+        return membroRepository.findAll().stream()
                 .collect(Collectors.toList());
     }
 

@@ -8,6 +8,9 @@ import java.util.UUID;
 
 import com.desafio.projectmanager.model.empresa.Empresa;
 import com.desafio.projectmanager.model.membro.Membro;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -65,8 +68,8 @@ public class Projeto {
     @JoinColumn(name = "membro_id", nullable = false)
     private Membro gerente;
 
-    @Column(nullable = false)
     @ManyToMany(mappedBy = "projetos")
+    @JsonManagedReference
     private Set<Membro> membros= new HashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
