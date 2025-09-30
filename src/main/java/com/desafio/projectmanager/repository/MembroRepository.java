@@ -1,6 +1,7 @@
 package com.desafio.projectmanager.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,5 +13,6 @@ import com.desafio.projectmanager.model.membro.Membro;
 public interface MembroRepository extends JpaRepository<Membro, UUID> {
 
     List<Membro> findAllByDeletedFalse();
+    Optional<Membro> findByIdAndDeletedFalse(UUID id);
 
 }

@@ -3,21 +3,31 @@ package com.desafio.projectmanager.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
 import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.mapper.ProjetoMapper;
+import com.desafio.projectmanager.model.empresa.Empresa;
+import com.desafio.projectmanager.model.membro.Membro;
 import com.desafio.projectmanager.model.projeto.Projeto;
 import com.desafio.projectmanager.model.projeto.Risco;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
+import com.desafio.projectmanager.repository.EmpresaRepository;
+import com.desafio.projectmanager.repository.MembroRepository;
 import com.desafio.projectmanager.repository.ProjetoRepository;
+import com.desafio.projectmanager.repository.specification.ProjetoSpecification;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,20 +35,24 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProjetoService {
 
-     private final ProjetoRepository projetoRepository;
-    private final ProjetoMapper projetoMapper; 
+    private final ProjetoRepository projetoRepository;
+    private final ProjetoMapper projetoMapper;
+    private final MembroRepository membroRepository;
+    private final MembroService membroService;
+    // Por questoes de simplicidade não será criado um service para empressa.
+    private final EmpresaRepository empresaRepository;
 
     private static final BigDecimal ORCAMENTO_RISCO_BAIXO_LIMITE = new BigDecimal("100000.00");
     private static final BigDecimal ORCAMENTO_RISCO_ALTO_INICIO = new BigDecimal("500000.00");
     private static final long PRAZO_RISCO_BAIXO_MESES = 3;
     private static final long PRAZO_RISCO_ALTO_MESES = 6;
-
+    private static final long MAXIMO_MEMBROS = 9;
 
     public List<ProjetoResumoDTO> listarProjetos() {
         return projetoRepository.findAllByDeletedFalse().stream()
                 .map(projeto -> {
                     Risco risco = calcularRisco(projeto);
-                    return projetoMapper.toResumoDTO(projeto, risco); 
+                    return projetoMapper.toResumoDTO(projeto, risco);
                 })
                 .collect(Collectors.toList());
     }
@@ -48,13 +62,31 @@ public class ProjetoService {
                 .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
 
         Risco risco = calcularRisco(projeto);
-        
+
         return projetoMapper.toDetalhesDTO(projeto, risco);
     }
-    
-    public ProjetoDetalhesDTO salvarProjeto(ProjetoRequestDTO projetoDTO) {
- 
-        Projeto projeto = projetoMapper.toEntity(projetoDTO);
+
+    public ProjetoDetalhesDTO criarProjeto(ProjetoRequestDTO projetoRequestDTO) {
+        Empresa empresa = empresaRepository.findById(projetoRequestDTO.getEmpresaId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Empresa não encontrada com ID: " + projetoRequestDTO.getEmpresaId()));
+
+        Membro gerente = membroService.encontrarPorId(projetoRequestDTO.getGerenteId());
+
+        List<Membro> membrosLista = membroService.encontrarTodosPorId(projetoRequestDTO.getMembrosIds());
+
+        if (membrosLista.size() > MAXIMO_MEMBROS) {
+            throw new BusinessException("Projeto não pode ter mais de " + MAXIMO_MEMBROS + " Membros");
+        }
+        if (existeIdEmSet(projetoRequestDTO.getGerenteId(), projetoRequestDTO.getMembrosIds())) {
+            throw new BusinessException("Gerente precisa formar parte dos Membros");
+        }
+
+        Projeto projeto = projetoMapper.toEntity(projetoRequestDTO);
+        projeto.setEmpresa(empresa);
+        projeto.setGerente(gerente);
+        projeto.setMembros(new HashSet<>(membrosLista));
+
         Projeto projetoSalvo = projetoRepository.save(projeto);
         Risco risco = calcularRisco(projetoSalvo);
         return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
@@ -62,39 +94,55 @@ public class ProjetoService {
 
     public void eliminarProjeto(UUID projetoId) {
         Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-            .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
+                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
 
         StatusProjeto status = projeto.getStatus();
 
-        if (status == StatusProjeto.INICIADO || status == StatusProjeto.EM_ANDAMENTO || status == StatusProjeto.ENCERRADO) {
+        if (status == StatusProjeto.INICIADO || status == StatusProjeto.EM_ANDAMENTO
+                || status == StatusProjeto.ENCERRADO) {
             throw new BusinessException("Projeto com status '" + status + "' não pode ser excluído.");
         }
-        
+
         projeto.setDeleted(true);
         projetoRepository.save(projeto);
     }
 
     public ProjetoDetalhesDTO alterarStatus(UUID projetoId, StatusProjeto novoStatus) {
-    Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-            .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
+        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
+                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
 
-    StatusProjeto statusAtual = projeto.getStatus();
-    if (!statusAtual.podeTransitarPara(novoStatus)) {
-        throw new BusinessException(
-            String.format("Não é possível alterar o status de '%s' para '%s'", statusAtual, novoStatus)
-        );
-    }
-      projeto.setStatus(novoStatus);
-    
-    if (novoStatus == StatusProjeto.ENCERRADO) {
-        projeto.setDataFinalReal((LocalDate.now()));
+        StatusProjeto statusAtual = projeto.getStatus();
+        if (!statusAtual.podeTransitarPara(novoStatus)) {
+            throw new BusinessException(
+                    String.format("Não é possível alterar o status de '%s' para '%s'", statusAtual, novoStatus));
+        }
+        projeto.setStatus(novoStatus);
+
+        if (novoStatus == StatusProjeto.ENCERRADO) {
+            projeto.setDataFinalReal((LocalDate.now()));
+        }
+
+        Projeto projetoSalvo = projetoRepository.save(projeto);
+
+        Risco risco = calcularRisco(projetoSalvo);
+        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
     }
 
-    Projeto projetoSalvo = projetoRepository.save(projeto);
-    
-    Risco risco = calcularRisco(projetoSalvo);
-    return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
-}
+    public List<ProjetoResumoDTO> listarProjetosPorFiltro(ProjetoFiltroDTO filtros) {
+        try {
+            List<Projeto> projetos = projetoRepository.findAll(ProjetoSpecification.filterBy(filtros));
+            if (projetos.isEmpty()) {
+                throw new NotFoundException("Projetos não encontrados com os filtros especificados.");
+            }
+            return projetos.stream().map(projeto -> {
+                Risco risco = calcularRisco(projeto);
+                return projetoMapper.toResumoDTO(projeto, risco);
+            })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error obtendo os Projetos: " + e.getMessage());
+        }
+    }
 
     private Risco calcularRisco(Projeto projeto) {
         long mesesTotais = calcularMesesTotais(projeto);
@@ -127,6 +175,8 @@ public class ProjetoService {
         return prazoOk || orcamentoOk;
     }
 
-
+    private boolean existeIdEmSet(UUID id, Set<UUID> membrosIds) {
+        return membrosIds.stream().filter(membroid -> membroid.equals(id)).findAny().isPresent();
+    }
 
 }

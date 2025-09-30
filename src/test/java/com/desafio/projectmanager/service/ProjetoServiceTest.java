@@ -7,8 +7,10 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -17,15 +19,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
+import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
 import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.mapper.ProjetoMapper;
+import com.desafio.projectmanager.model.empresa.Empresa;
+import com.desafio.projectmanager.model.membro.Membro;
 import com.desafio.projectmanager.model.projeto.Projeto;
 import com.desafio.projectmanager.model.projeto.Risco;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
+import com.desafio.projectmanager.repository.EmpresaRepository;
 import com.desafio.projectmanager.repository.ProjetoRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +43,12 @@ class ProjetoServiceTest {
 
     @Mock
     private ProjetoMapper projetoMapper;
+
+    @Mock
+    private EmpresaRepository empresaRepository;
+
+    @Mock
+    private MembroService membroService;
 
     @InjectMocks
     private ProjetoService projetoService;
@@ -112,63 +125,148 @@ class ProjetoServiceTest {
     }
 
     @Test
-    void salvarProjeto_deveRetornarRiscoBaixo() {
+    void criarProjeto_deveRetornarRiscoBaixo() {
+        UUID GERENTE_ID = UUID.randomUUID();
+        UUID MEMBRO_ID = UUID.randomUUID();
+        UUID EMPRESA_ID = UUID.randomUUID();
+
         ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
         requestDTO.setDataInicio(LocalDate.now());
         requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
         requestDTO.setOrcamento(new BigDecimal("90000.00"));
+        requestDTO.setMembrosIds(Set.of(GERENTE_ID));
+        requestDTO.setMembrosIds(Set.of(MEMBRO_ID));
+        requestDTO.setGerenteId(GERENTE_ID);
+
         Projeto projetoMapeado = new Projeto();
         projetoMapeado.setDataInicio(requestDTO.getDataInicio());
         projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
         projetoMapeado.setOrcamento(requestDTO.getOrcamento());
 
+        Membro gerente = new Membro();
+        gerente.setId(GERENTE_ID);
+        gerente.setNome("gerente");
+
+        Membro membro = new Membro();
+        gerente.setId(MEMBRO_ID);
+        gerente.setNome("membro");
+
+        List<Membro> membrosList = new ArrayList<>();
+        membrosList.add(gerente);
+        membrosList.add(membro);
+
+        Empresa empresa = new Empresa();
+        empresa.setId(EMPRESA_ID);
+
+        when(membroService.encontrarPorId(GERENTE_ID)).thenReturn(gerente);
+        when(membroService.encontrarTodosPorId(requestDTO.getMembrosIds())).thenReturn(membrosList);
+
+        when(empresaRepository.findById(requestDTO.getEmpresaId())).thenReturn(Optional.of(empresa));
+
         when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+
         when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
         when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.BAIXO))).thenReturn(new ProjetoDetalhesDTO());
 
-        projetoService.salvarProjeto(requestDTO);
+        projetoService.criarProjeto(requestDTO);
 
         verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.BAIXO));
     }
 
     @Test
-    void salvarProjeto_deveRetornarRiscoMedio() {
+    void criarProjeto_deveRetornarRiscoMedio() {
+        UUID GERENTE_ID = UUID.randomUUID();
+        UUID MEMBRO_ID = UUID.randomUUID();
+        UUID EMPRESA_ID = UUID.randomUUID();
+
         ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
         requestDTO.setDataInicio(LocalDate.now());
         requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(5));
         requestDTO.setOrcamento(new BigDecimal("250000.00"));
+        requestDTO.setMembrosIds(Set.of(GERENTE_ID));
+        requestDTO.setMembrosIds(Set.of(MEMBRO_ID));
+        requestDTO.setGerenteId(GERENTE_ID);
+
         Projeto projetoMapeado = new Projeto();
         projetoMapeado.setDataInicio(requestDTO.getDataInicio());
         projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
         projetoMapeado.setOrcamento(requestDTO.getOrcamento());
 
+        Membro gerente = new Membro();
+        gerente.setId(GERENTE_ID);
+        gerente.setNome("gerente");
+
+        Membro membro = new Membro();
+        gerente.setId(MEMBRO_ID);
+        gerente.setNome("membro");
+
+        List<Membro> membrosList = new ArrayList<>();
+        membrosList.add(gerente);
+        membrosList.add(membro);
+
+        Empresa empresa = new Empresa();
+        empresa.setId(EMPRESA_ID);
+
+        when(membroService.encontrarPorId(GERENTE_ID)).thenReturn(gerente);
+        when(membroService.encontrarTodosPorId(requestDTO.getMembrosIds())).thenReturn(membrosList);
+
+        when(empresaRepository.findById(requestDTO.getEmpresaId())).thenReturn(Optional.of(empresa));
+
         when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+
         when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
         when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.MEDIO))).thenReturn(new ProjetoDetalhesDTO());
 
-        projetoService.salvarProjeto(requestDTO);
+        projetoService.criarProjeto(requestDTO);
 
         verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.MEDIO));
     }
 
     @Test
-    void salvarProjeto_deveRetornarRiscoAlto_porOrcamento() {
+    void criarProjeto_deveRetornarRiscoAlto_porOrcamento() {
+        UUID GERENTE_ID = UUID.randomUUID();
+        UUID MEMBRO_ID = UUID.randomUUID();
+        UUID EMPRESA_ID = UUID.randomUUID();
 
         ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
         requestDTO.setDataInicio(LocalDate.now());
         requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
         requestDTO.setOrcamento(new BigDecimal("600000.00"));
+        requestDTO.setMembrosIds(Set.of(GERENTE_ID));
+        requestDTO.setMembrosIds(Set.of(MEMBRO_ID));
+        requestDTO.setGerenteId(GERENTE_ID);
 
         Projeto projetoMapeado = new Projeto();
         projetoMapeado.setDataInicio(requestDTO.getDataInicio());
         projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
         projetoMapeado.setOrcamento(requestDTO.getOrcamento());
 
+        Membro gerente = new Membro();
+        gerente.setId(GERENTE_ID);
+        gerente.setNome("gerente");
+
+        Membro membro = new Membro();
+        gerente.setId(MEMBRO_ID);
+        gerente.setNome("membro");
+
+        List<Membro> membrosList = new ArrayList<>();
+        membrosList.add(gerente);
+        membrosList.add(membro);
+
+        Empresa empresa = new Empresa();
+        empresa.setId(EMPRESA_ID);
+
+        when(membroService.encontrarPorId(GERENTE_ID)).thenReturn(gerente);
+        when(membroService.encontrarTodosPorId(requestDTO.getMembrosIds())).thenReturn(membrosList);
+
+        when(empresaRepository.findById(requestDTO.getEmpresaId())).thenReturn(Optional.of(empresa));
+
         when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+
         when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
         when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.ALTO))).thenReturn(new ProjetoDetalhesDTO());
 
-        projetoService.salvarProjeto(requestDTO);
+        projetoService.criarProjeto(requestDTO);
 
         verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.ALTO));
     }
@@ -206,5 +304,35 @@ class ProjetoServiceTest {
         assertEquals("Projeto com status 'INICIADO' não pode ser excluído.", exception.getMessage());
 
         verify(projetoRepository, never()).save(any(Projeto.class));
+    }
+
+    @Test
+    void listarProjetosPorFiltro_deveRetornarListaDeResumoDTOs_quandoProjetoCoincideComFiltro() {
+
+        ProjetoFiltroDTO filtros = new ProjetoFiltroDTO();
+        filtros.setNome("Teste");
+        Projeto projetoEncontrado = criarProjetoPadrao();
+
+        List<Projeto> listaDeProjetos = List.of(projetoEncontrado);
+
+        ProjetoResumoDTO resumoDTO = new ProjetoResumoDTO();
+        resumoDTO.setId(projetoEncontrado.getId());
+        resumoDTO.setNome(projetoEncontrado.getNome());
+        resumoDTO.setClassificacaoRisco(Risco.BAIXO);
+
+        when(projetoRepository.findAll(any(Specification.class))).thenReturn(listaDeProjetos);
+
+        when(projetoMapper.toResumoDTO(projetoEncontrado, Risco.BAIXO)).thenReturn(resumoDTO);
+
+        List<ProjetoResumoDTO> resultado = projetoService.listarProjetosPorFiltro(filtros);
+
+        assertNotNull(resultado);
+        assertFalse(resultado.isEmpty());
+        assertEquals(1, resultado.size());
+        assertEquals("Projeto de Teste", resultado.get(0).getNome());
+        assertEquals(Risco.BAIXO, resultado.get(0).getClassificacaoRisco());
+
+        verify(projetoRepository, times(1)).findAll(any(Specification.class));
+        verify(projetoMapper, times(1)).toResumoDTO(any(Projeto.class), any(Risco.class));
     }
 }
