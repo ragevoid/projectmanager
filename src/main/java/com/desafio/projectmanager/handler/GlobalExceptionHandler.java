@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,5 +47,14 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 "RuntimeException. Error inesperado!");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDetails);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorDetails> handleNotFoundException(NotFoundException ex) {
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                ex.getMessage(),
+                "Recurso no encontrado");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDetails);
     }
 }
