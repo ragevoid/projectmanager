@@ -6,9 +6,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import com.desafio.projectmanager.model.empresa.Empresa;
 import com.desafio.projectmanager.model.membro.Membro;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -66,17 +66,13 @@ public class Projeto {
     @JoinColumn(name = "gerente_id", nullable = false) 
     private Membro gerente;
 
-    @ManyToMany
+    @ManyToMany(cascade=CascadeType.PERSIST )
     @JoinTable(
-        name = "projeto_membro",
+        name = "projeto_membros",
         joinColumns = @JoinColumn(name = "projeto_id"),
         inverseJoinColumns = @JoinColumn(name = "membro_id")
     )
     private Set<Membro> membros = new HashSet<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "empresa_id", nullable = false)
-    private Empresa empresa;
 
     @Column(nullable = false)
     private Boolean deleted = false;

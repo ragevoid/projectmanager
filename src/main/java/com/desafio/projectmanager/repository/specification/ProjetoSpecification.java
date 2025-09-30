@@ -16,7 +16,7 @@ public class ProjetoSpecification {
 
             List<Predicate> predicates = new ArrayList<>();
             if (filter.getNome() != null) {
-                predicates.add(cb.equal(root.get("nome"), filter.getNome()));
+               predicates.add(cb.like(cb.lower(root.get("nome")), "%" + filter.getNome().toLowerCase() + "%"));
             }
 
             if (filter.getOrcamentoMin() != null && filter.getOrcamentoMax() != null) {

@@ -36,10 +36,9 @@ public class Membro {
     private String nome;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column()
     private Atribuicao atribuicao;
 
     @ManyToMany(mappedBy = "membros")
     private Set<Projeto> projetos = new HashSet<>();
-
 }

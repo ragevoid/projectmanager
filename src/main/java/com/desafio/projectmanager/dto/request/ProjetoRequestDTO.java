@@ -37,9 +37,6 @@ public class ProjetoRequestDTO {
     
     @NotNull(message = "O ID do gerente é obrigatório")
     private UUID gerenteId;
-    
-    @NotNull(message = "O ID da empresa é obrigatório")
-    private UUID empresaId;
 
     private Set<UUID> membrosIds;
 }
