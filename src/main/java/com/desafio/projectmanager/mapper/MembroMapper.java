@@ -1,19 +1,26 @@
 package com.desafio.projectmanager.mapper;
 
-import java.util.List;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
 
-import com.desafio.projectmanager.dto.response.MembroResponseDTO;
+import com.desafio.projectmanager.dto.response.MembroDetalhesDTO;
+import com.desafio.projectmanager.dto.response.MembroExternoDTO;
+import com.desafio.projectmanager.dto.response.MembroResumoDTO;
 import com.desafio.projectmanager.model.membro.Membro;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {ProjetoMapper.class})
 public interface MembroMapper {
 
-    @Mapping(source = "empresa.id", target = "empresaId")
-    MembroResponseDTO toDto (Membro membro);
+    MembroResumoDTO toResumoDTO(Membro membro);
 
-    List<MembroResponseDTO>toDtoList(List<Membro> membros);
-
+    MembroDetalhesDTO toDetalhesDTO(Membro membro);
+    
+    @Mappings({
+        @Mapping(source = "id", target = "idMockado"), 
+        @Mapping(target = "id", ignore = true),
+        @Mapping(target = "projetos", ignore = true)
+    })
+    Membro toEntity(MembroExternoDTO externoDTO);
 }
