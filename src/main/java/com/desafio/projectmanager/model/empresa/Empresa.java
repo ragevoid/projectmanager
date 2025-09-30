@@ -4,13 +4,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.desafio.projectmanager.model.membro.Membro;
 import com.desafio.projectmanager.model.projeto.Projeto;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -27,19 +26,20 @@ import jakarta.persistence.Table;
 @Getter
 @Setter
 public class Empresa {
-    @Id
+@Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
     private String nome;
 
-    @JsonManagedReference
-    @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)
-    private List<Membro> membros;
+    @OneToMany(mappedBy = "empresa", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
 
-    @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)
-    private List<Projeto> projetos;
+    private Set<Membro> membros = new HashSet<>();
+
+    @OneToMany(mappedBy = "empresa", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
+
+    private Set<Projeto> projetos = new HashSet<>();
 
     @Column(nullable = false)
     private Boolean deleted = false;

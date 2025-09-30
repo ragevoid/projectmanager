@@ -1,6 +1,6 @@
 package com.desafio.projectmanager.model.projeto;
 
-public enum ClassificacaoRisco {
+public enum Risco {
     BAIXO,
     MEDIO,
     ALTO
