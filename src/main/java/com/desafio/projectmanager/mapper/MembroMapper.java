@@ -15,6 +15,7 @@ public interface MembroMapper {
 
     MembroResumoDTO toResumoDTO(Membro membro);
 
+
     MembroDetalhesDTO toDetalhesDTO(Membro membro);
     
     @Mappings({

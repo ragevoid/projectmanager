@@ -15,8 +15,8 @@ public class ProjetoDetalhesDTO {
     private UUID id;
     private String nome;
     private LocalDate dataInicio;
-    private LocalDate dataPrevisaoFim;
-    private LocalDate dataFimReal;
+    private LocalDate dataFinalPrevisao;
+    private LocalDate dataFinalReal;
     private BigDecimal orcamento;
     private String descricao;
     private StatusProjeto status;
