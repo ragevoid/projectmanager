@@ -1,13 +1,9 @@
 package com.desafio.projectmanager.service;
 
-import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.desafio.projectmanager.dto.response.MembroExternoDTO;
 import com.desafio.projectmanager.mapper.MembroMapper;
-import com.desafio.projectmanager.model.membro.Membro;
 import com.desafio.projectmanager.repository.MembroRepository;
 
 import lombok.RequiredArgsConstructor;
