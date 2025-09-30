@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
@@ -25,7 +28,6 @@ import com.desafio.projectmanager.model.projeto.Projeto;
 import com.desafio.projectmanager.model.projeto.Risco;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
 import com.desafio.projectmanager.repository.EmpresaRepository;
-import com.desafio.projectmanager.repository.MembroRepository;
 import com.desafio.projectmanager.repository.ProjetoRepository;
 import com.desafio.projectmanager.repository.specification.ProjetoSpecification;
 
@@ -37,7 +39,6 @@ public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final ProjetoMapper projetoMapper;
-    private final MembroRepository membroRepository;
     private final MembroService membroService;
     // Por questoes de simplicidade não será criado um service para empressa.
     private final EmpresaRepository empresaRepository;
@@ -128,17 +129,14 @@ public class ProjetoService {
         return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
     }
 
-    public List<ProjetoResumoDTO> listarProjetosPorFiltro(ProjetoFiltroDTO filtros) {
+    public Page<ProjetoResumoDTO> listarProjetosPorFiltro(ProjetoFiltroDTO filtros, Pageable pageable) {
+        Specification<Projeto> spec = ProjetoSpecification.filterBy(filtros);
         try {
-            List<Projeto> projetos = projetoRepository.findAll(ProjetoSpecification.filterBy(filtros));
-            if (projetos.isEmpty()) {
+            Page<Projeto> paginaDeProjetos = projetoRepository.findAll(spec, pageable);
+            if (paginaDeProjetos.isEmpty()) {
                 throw new NotFoundException("Projetos não encontrados com os filtros especificados.");
             }
-            return projetos.stream().map(projeto -> {
-                Risco risco = calcularRisco(projeto);
-                return projetoMapper.toResumoDTO(projeto, risco);
-            })
-                    .collect(Collectors.toList());
+            return paginaDeProjetos.map(projeto -> { Risco risco = calcularRisco(projeto); return projetoMapper.toResumoDTO(projeto, risco); });
         } catch (Exception e) {
             throw new IllegalArgumentException("Error obtendo os Projetos: " + e.getMessage());
         }

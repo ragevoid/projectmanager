@@ -35,7 +35,8 @@ public interface ProjetoMapper {
         @Mapping(target = "gerente", ignore = true),
         @Mapping(target = "empresa", ignore = true),
         @Mapping(target = "membros", ignore = true),
-        @Mapping(target = "deleted", ignore = true)
+        @Mapping(target = "deleted", ignore = true),
+        @Mapping(target = "classificacaoRisco", ignore = true)
     })
     Projeto toEntity(ProjetoRequestDTO requestDTO);
 
