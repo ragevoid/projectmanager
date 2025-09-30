@@ -74,14 +74,36 @@ public class ProjetoService {
         projetoRepository.save(projeto);
     }
 
+    public ProjetoDetalhesDTO alterarStatus(UUID projetoId, StatusProjeto novoStatus) {
+    Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
+            .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
+
+    StatusProjeto statusAtual = projeto.getStatus();
+    if (!statusAtual.podeTransitarPara(novoStatus)) {
+        throw new BusinessException(
+            String.format("Não é possível alterar o status de '%s' para '%s'", statusAtual, novoStatus)
+        );
+    }
+      projeto.setStatus(novoStatus);
+    
+    if (novoStatus == StatusProjeto.ENCERRADO) {
+        projeto.setDataFinalReal((LocalDate.now()));
+    }
+
+    Projeto projetoSalvo = projetoRepository.save(projeto);
+    
+    Risco risco = calcularRisco(projetoSalvo);
+    return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
+}
+
     private Risco calcularRisco(Projeto projeto) {
         long mesesTotais = calcularMesesTotais(projeto);
         BigDecimal orcamento = projeto.getOrcamento();
 
-        if (esRiscoAlto(mesesTotais, orcamento)) {
+        if (isRiscoAlto(mesesTotais, orcamento)) {
             return Risco.ALTO;
         }
-        if (esRiscoBaixo(mesesTotais, orcamento)) {
+        if (isRiscoBaixo(mesesTotais, orcamento)) {
             return Risco.BAIXO;
         }
         return Risco.MEDIO;
@@ -93,16 +115,18 @@ public class ProjetoService {
         return ChronoUnit.MONTHS.between(inicio, fimPrevisto);
     }
 
-    private boolean esRiscoBaixo(long mesesTotais, BigDecimal orcamento) {
+    private boolean isRiscoBaixo(long mesesTotais, BigDecimal orcamento) {
         boolean prazoOk = mesesTotais <= PRAZO_RISCO_BAIXO_MESES;
         boolean orcamentoOk = orcamento.compareTo(ORCAMENTO_RISCO_BAIXO_LIMITE) <= 0;
         return prazoOk && orcamentoOk;
     }
 
-    private boolean esRiscoAlto(long mesesTotais, BigDecimal orcamento) {
+    private boolean isRiscoAlto(long mesesTotais, BigDecimal orcamento) {
         boolean prazoOk = mesesTotais > PRAZO_RISCO_ALTO_MESES;
         boolean orcamentoOk = orcamento.compareTo(ORCAMENTO_RISCO_ALTO_INICIO) > 0;
         return prazoOk || orcamentoOk;
     }
+
+
 
 }
