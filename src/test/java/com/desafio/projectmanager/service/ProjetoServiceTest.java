@@ -1,16 +1,12 @@
 package com.desafio.projectmanager.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,208 +18,193 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
+import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
+import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
-import com.desafio.projectmanager.model.projeto.ClassificacaoRisco;
+import com.desafio.projectmanager.mapper.ProjetoMapper;
 import com.desafio.projectmanager.model.projeto.Projeto;
+import com.desafio.projectmanager.model.projeto.Risco;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
 import com.desafio.projectmanager.repository.ProjetoRepository;
 
 @ExtendWith(MockitoExtension.class)
-public class ProjetoServiceTest {
+class ProjetoServiceTest {
 
     @Mock
     private ProjetoRepository projetoRepository;
 
+    @Mock
+    private ProjetoMapper projetoMapper;
+
     @InjectMocks
     private ProjetoService projetoService;
 
-    @Test
-    void listarProjetos_deveriaRetornarListaDeProjetos_quandoExistemProjetos() {
-
-        UUID uuidA = UUID.randomUUID();
-        UUID uuidB = UUID.randomUUID();
-
-        Projeto projeto1 = new Projeto();
-        projeto1.setId(uuidA);
-        projeto1.setNome("Projeto Apollo");
-
-        Projeto projeto2 = new Projeto();
-        projeto2.setId(uuidB);
-        projeto2.setNome("Projeto X");
-
-        List<Projeto> listaDeProjetos = List.of(projeto1, projeto2);
-
-        when(projetoRepository.findAllByDeletedFalse()).thenReturn(listaDeProjetos);
-
-        List<Projeto> resultado = projetoService.listarProjetos();
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-        assertEquals("Projeto Apollo", resultado.get(0).getNome());
-
-        verify(projetoRepository, times(1)).findAllByDeletedFalse();
-    }
-
-    @Test
-    void crearProjeto_deveriaClasificarComoBaixo_quandoCondicoesDeRiesgoBaixo() {
-        LocalDateTime inicio = LocalDateTime.now();
-        LocalDateTime fin = inicio.plusMonths(2);
-        BigDecimal orcamento = new BigDecimal("50000.00");
-
-        Projeto projetoParaTestar = new Projeto();
-        projetoParaTestar.setDataInicio(inicio);
-        projetoParaTestar.setDataFinalPrevisao(fin);
-        projetoParaTestar.setOrcamento(orcamento);
-        projetoParaTestar.setNome("Projeto teste");
-
-        when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
-
-        assertNotNull(projetoCriado);
-        assertEquals(ClassificacaoRisco.BAIXO, projetoCriado.getClassificacaoRisco());
-
-        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
-        verify(projetoRepository, times(1)).save(projetoCaptor.capture());
-
-        Projeto projetoGuardado = projetoCaptor.getValue();
-        assertEquals(ClassificacaoRisco.BAIXO, projetoGuardado.getClassificacaoRisco());
-    }
-
-    @Test
-    void crearProjeto_deveriaClasificarComoMedio_quandoCondicoesDeRiesgoMedio() {
-        LocalDateTime inicio = LocalDateTime.now();
-        LocalDateTime fin = inicio.plusMonths(2);
-        BigDecimal orcamento = new BigDecimal("200000.00");
-
-        Projeto projetoParaTestar = new Projeto();
-        projetoParaTestar.setDataInicio(inicio);
-        projetoParaTestar.setDataFinalPrevisao(fin);
-        projetoParaTestar.setOrcamento(orcamento);
-        projetoParaTestar.setNome("Projeto teste");
-
-        when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
-
-        assertNotNull(projetoCriado);
-        assertEquals(ClassificacaoRisco.MEDIO, projetoCriado.getClassificacaoRisco());
-
-        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
-        verify(projetoRepository, times(1)).save(projetoCaptor.capture());
-
-        Projeto projetoGuardado = projetoCaptor.getValue();
-        assertEquals(ClassificacaoRisco.MEDIO, projetoGuardado.getClassificacaoRisco());
-    }
-
-    @Test
-    void crearProjeto_deveriaClasificarComoAlto_quandoCondicoesDeRiesgoAlto() {
-        LocalDateTime inicio = LocalDateTime.now();
-        LocalDateTime fin = inicio.plusMonths(2);
-        BigDecimal orcamento = new BigDecimal("600000.00");
-
-        Projeto projetoParaTestar = new Projeto();
-        projetoParaTestar.setDataInicio(inicio);
-        projetoParaTestar.setDataFinalPrevisao(fin);
-        projetoParaTestar.setOrcamento(orcamento);
-        projetoParaTestar.setNome("Projeto teste");
-
-        when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Projeto projetoCriado = projetoService.salvarProjeto(projetoParaTestar);
-
-        assertNotNull(projetoCriado);
-        assertEquals(ClassificacaoRisco.ALTO, projetoCriado.getClassificacaoRisco());
-
-        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
-        verify(projetoRepository, times(1)).save(projetoCaptor.capture());
-
-        Projeto projetoGuardado = projetoCaptor.getValue();
-        assertEquals(ClassificacaoRisco.ALTO, projetoGuardado.getClassificacaoRisco());
-    }
-
-    @Test
-    void eliminarProjeto_deveriaSalvarProjetoComDeletedTrue_quandoStatusEmAnalise() {
-        UUID uuid = UUID.randomUUID();
-
+    private Projeto criarProjetoPadrao() {
         Projeto projeto = new Projeto();
-        projeto.setId(uuid);
-        projeto.setNome("Projeto Apollo");
+        projeto.setId(UUID.randomUUID());
+        projeto.setNome("Projeto de Teste");
+        projeto.setDataInicio(LocalDate.now());
+        projeto.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
+        projeto.setOrcamento(new BigDecimal("50000.00"));
         projeto.setStatus(StatusProjeto.EM_ANALISE);
         projeto.setDeleted(false);
-
-        when(projetoRepository.save(any(Projeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
-
-        Projeto projetoEliminado = projetoService.eliminarProjeto(uuid);
-
-        verify(projetoRepository, times(1)).save(projeto);
-        verify(projetoRepository, times(1)).findById(uuid);
-
-        assertNotNull(projetoEliminado);
-        assertTrue(projetoEliminado.getDeleted());
-        assertEquals("Projeto Apollo", projetoEliminado.getNome());
+        return projeto;
     }
 
     @Test
-    void eliminarProjeto_deveriaRetornarBusinessException_quandoStatusIniciado() {
-        UUID uuid = UUID.randomUUID();
+    void listarProjetos_deveRetornarListaDeResumoDTOs() {
+        Projeto projeto = criarProjetoPadrao();
+        ProjetoResumoDTO resumoDTO = new ProjetoResumoDTO();
+        resumoDTO.setId(projeto.getId());
+        resumoDTO.setNome(projeto.getNome());
+        resumoDTO.setStatus(projeto.getStatus());
+        resumoDTO.setClassificacaoRisco(Risco.BAIXO);
 
-        Projeto projeto = new Projeto();
-        projeto.setId(uuid);
-        projeto.setNome("Projeto Apollo");
+        when(projetoRepository.findAllByDeletedFalse()).thenReturn(List.of(projeto));
+        when(projetoMapper.toResumoDTO(projeto, Risco.BAIXO)).thenReturn(resumoDTO);
+
+        List<ProjetoResumoDTO> resultado = projetoService.listarProjetos();
+
+        assertNotNull(resultado);
+        assertFalse(resultado.isEmpty());
+        assertEquals(1, resultado.size());
+        assertEquals("Projeto de Teste", resultado.get(0).getNome());
+        assertEquals(Risco.BAIXO, resultado.get(0).getClassificacaoRisco());
+
+        verify(projetoRepository, times(1)).findAllByDeletedFalse();
+        verify(projetoMapper, times(1)).toResumoDTO(any(Projeto.class), any(Risco.class));
+    }
+
+    @Test
+    void encontrarPorId_deveRetornarDetalhesDTO_quandoProjetoExiste() {
+
+        UUID id = UUID.randomUUID();
+        Projeto projeto = criarProjetoPadrao();
+        ProjetoDetalhesDTO detalhesDTO = new ProjetoDetalhesDTO();
+        detalhesDTO.setId(id);
+        detalhesDTO.setNome("Projeto Detalhado");
+        detalhesDTO.setClassificacaoRisco(Risco.BAIXO);
+
+        when(projetoRepository.findByIdAndDeletedFalse(id)).thenReturn(Optional.of(projeto));
+        when(projetoMapper.toDetalhesDTO(projeto, Risco.BAIXO)).thenReturn(detalhesDTO);
+
+        ProjetoDetalhesDTO resultado = projetoService.encontrarPorId(id);
+
+        assertNotNull(resultado);
+        assertEquals("Projeto Detalhado", resultado.getNome());
+        assertEquals(Risco.BAIXO, resultado.getClassificacaoRisco());
+
+        verify(projetoRepository, times(1)).findByIdAndDeletedFalse(id);
+    }
+
+    @Test
+    void encontrarPorId_deveLancarExcecao_quandoProjetoNaoExiste() {
+
+        UUID id = UUID.randomUUID();
+        when(projetoRepository.findByIdAndDeletedFalse(id)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            projetoService.encontrarPorId(id);
+        });
+
+        verify(projetoRepository, times(1)).findByIdAndDeletedFalse(id);
+    }
+
+    @Test
+    void salvarProjeto_deveRetornarRiscoBaixo() {
+        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
+        requestDTO.setDataInicio(LocalDate.now());
+        requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
+        requestDTO.setOrcamento(new BigDecimal("90000.00"));
+        Projeto projetoMapeado = new Projeto();
+        projetoMapeado.setDataInicio(requestDTO.getDataInicio());
+        projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
+        projetoMapeado.setOrcamento(requestDTO.getOrcamento());
+
+        when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+        when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
+        when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.BAIXO))).thenReturn(new ProjetoDetalhesDTO());
+
+        projetoService.salvarProjeto(requestDTO);
+
+        verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.BAIXO));
+    }
+
+    @Test
+    void salvarProjeto_deveRetornarRiscoMedio() {
+        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
+        requestDTO.setDataInicio(LocalDate.now());
+        requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(5));
+        requestDTO.setOrcamento(new BigDecimal("250000.00"));
+        Projeto projetoMapeado = new Projeto();
+        projetoMapeado.setDataInicio(requestDTO.getDataInicio());
+        projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
+        projetoMapeado.setOrcamento(requestDTO.getOrcamento());
+
+        when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+        when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
+        when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.MEDIO))).thenReturn(new ProjetoDetalhesDTO());
+
+        projetoService.salvarProjeto(requestDTO);
+
+        verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.MEDIO));
+    }
+
+    @Test
+    void salvarProjeto_deveRetornarRiscoAlto_porOrcamento() {
+
+        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
+        requestDTO.setDataInicio(LocalDate.now());
+        requestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
+        requestDTO.setOrcamento(new BigDecimal("600000.00"));
+
+        Projeto projetoMapeado = new Projeto();
+        projetoMapeado.setDataInicio(requestDTO.getDataInicio());
+        projetoMapeado.setDataFinalPrevisao(requestDTO.getDataFinalPrevisao());
+        projetoMapeado.setOrcamento(requestDTO.getOrcamento());
+
+        when(projetoMapper.toEntity(requestDTO)).thenReturn(projetoMapeado);
+        when(projetoRepository.save(projetoMapeado)).thenReturn(projetoMapeado);
+        when(projetoMapper.toDetalhesDTO(any(Projeto.class), eq(Risco.ALTO))).thenReturn(new ProjetoDetalhesDTO());
+
+        projetoService.salvarProjeto(requestDTO);
+
+        verify(projetoMapper, times(1)).toDetalhesDTO(any(Projeto.class), eq(Risco.ALTO));
+    }
+
+    @Test
+    void eliminarProjeto_deveMarcarComoDeleted_quandoStatusPermite() {
+
+        UUID id = UUID.randomUUID();
+        Projeto projeto = criarProjetoPadrao();
+        projeto.setStatus(StatusProjeto.EM_ANALISE);
+
+        when(projetoRepository.findByIdAndDeletedFalse(id)).thenReturn(Optional.of(projeto));
+
+        projetoService.eliminarProjeto(id);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository, times(1)).save(projetoCaptor.capture());
+
+        Projeto projetoSalvo = projetoCaptor.getValue();
+        assertTrue(projetoSalvo.getDeleted());
+    }
+
+    @Test
+    void eliminarProjeto_deveLancarExcecao_quandoStatusNaoPermite() {
+        UUID id = UUID.randomUUID();
+        Projeto projeto = criarProjetoPadrao();
         projeto.setStatus(StatusProjeto.INICIADO);
-        projeto.setDeleted(false);
 
-        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
+        when(projetoRepository.findByIdAndDeletedFalse(id)).thenReturn(Optional.of(projeto));
 
         BusinessException exception = assertThrows(BusinessException.class, () -> {
-            projetoService.eliminarProjeto(uuid);
+            projetoService.eliminarProjeto(id);
         });
 
-        assertEquals("Projeto não pode ser eliminado, Verifique Status", exception.getMessage());
+        assertEquals("Projeto com status 'INICIADO' não pode ser excluído.", exception.getMessage());
 
-        verify(projetoRepository, times(0)).save(projeto);
-        verify(projetoRepository, times(1)).findById(uuid);
-
+        verify(projetoRepository, never()).save(any(Projeto.class));
     }
-
-    @Test
-    void encontrarPorId_deveriaRetornarIllegalArgumentException_quandoProjetoNãoExiste() {
-        UUID uuid = UUID.randomUUID();
-
-        Projeto projeto = new Projeto();
-        projeto.setId(uuid);
-        projeto.setNome("Projeto Apollo");
-
-        when(projetoRepository.findById(uuid)).thenReturn(Optional.empty());
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            projetoService.eliminarProjeto(uuid);
-        });
-
-        assertEquals("Projeto não encontrado con ID: " + uuid, exception.getMessage());
-
-        verify(projetoRepository, times(1)).findById(uuid);
-
-    }
-
-    @Test
-    void encontrarPorId_deveriaRetornarProjeto_quandoProjetoExiste() {
-        UUID uuid = UUID.randomUUID();
-        Projeto projeto = new Projeto();
-        projeto.setId(uuid);
-        projeto.setNome("Projeto Apollo");
-
-        when(projetoRepository.findById(uuid)).thenReturn(Optional.of(projeto));
-
-        Projeto projetoEncontrado = projetoService.encontrarPorId(uuid);
-
-        verify(projetoRepository, times(1)).findById(uuid);
-
-        assertNotNull(projetoEncontrado);
-        assertEquals("Projeto Apollo", projetoEncontrado.getNome());
-
-    }
-
 }
