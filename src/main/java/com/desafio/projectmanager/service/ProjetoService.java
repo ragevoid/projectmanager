@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
@@ -101,6 +102,49 @@ public class ProjetoService {
 
         projeto.setDeleted(true);
         projetoRepository.save(projeto);
+    }
+
+    @Transactional
+    public ProjetoDetalhesDTO atualizarProjeto(UUID projetoId, AtualizarProjetoDTO dadosParaAtualizar) {
+        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
+                .orElseThrow(() -> new NotFoundException("Projeto não encontrado com ID: " + projetoId));
+
+        if (projeto.getStatus() == StatusProjeto.ENCERRADO || projeto.getStatus() == StatusProjeto.CANCELADO) {
+            throw new BusinessException("Não é possível alterar um projeto com status " + projeto.getStatus());
+        }
+
+        if (dadosParaAtualizar.getNome() != null) {
+            projeto.setNome(dadosParaAtualizar.getNome());
+        }
+        if (dadosParaAtualizar.getDescricao() != null) {
+            projeto.setDescricao(dadosParaAtualizar.getDescricao());
+        }
+        if (dadosParaAtualizar.getDataInicio() != null) {
+            projeto.setDataInicio(dadosParaAtualizar.getDataInicio());
+        }
+        if (dadosParaAtualizar.getDataFinalPrevisao() != null) {
+            projeto.setDataFinalPrevisao(dadosParaAtualizar.getDataFinalPrevisao());
+        }
+        if (dadosParaAtualizar.getOrcamento() != null) {
+            projeto.setOrcamento(dadosParaAtualizar.getOrcamento());
+        }
+
+        if (dadosParaAtualizar.getGerenteId() != null) {
+            if (!dadosParaAtualizar.getGerenteId().equals(projeto.getGerente().getId())) {
+                Membro novoGerente = membroService.buscarOuCriarMembroLocal(dadosParaAtualizar.getGerenteId());
+
+                if (!projeto.getMembros().contains(novoGerente)) {
+                    throw new BusinessException(
+                            "Para ser gerente, o membro também deve fazer parte da equipe do projeto.");
+                }
+
+                projeto.setGerente(novoGerente);
+            }
+        }
+        Projeto projetoSalvo = projetoRepository.save(projeto);
+
+        Risco risco = calcularRisco(projetoSalvo);
+        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
     }
 
     @Transactional

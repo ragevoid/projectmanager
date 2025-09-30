@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.desafio.projectmanager.dto.request.AdicionarMembrosRequestDTO;
+import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
@@ -121,6 +122,22 @@ public class ProjetoController {
 
                 ProjetoDetalhesDTO projetoAtualizado = projetoService.adicionarMembros(request.getMembrosIds(),
                                 projetoId);
+                return ResponseEntity.ok(projetoAtualizado);
+        }
+
+        @PatchMapping("/{id}")
+        @Operation(summary = "Atualiza um projeto existente parcialmente")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Projeto atualizado com sucesso"),
+                        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou violação de regra de negócio"),
+                        @ApiResponse(responseCode = "404", description = "Projeto não encontrado")
+        })
+        public ResponseEntity<ProjetoDetalhesDTO> atualizarProjeto(
+                        @Parameter(description = "ID do projeto a ser atualizado", required = true) @PathVariable UUID id,
+
+                        @Valid @RequestBody AtualizarProjetoDTO dadosParaAtualizar) {
+
+                ProjetoDetalhesDTO projetoAtualizado = projetoService.atualizarProjeto(id, dadosParaAtualizar);
                 return ResponseEntity.ok(projetoAtualizado);
         }
 }
