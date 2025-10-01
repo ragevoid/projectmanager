@@ -34,6 +34,7 @@ import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
 import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
 import com.desafio.projectmanager.service.ProjetoService;
 
@@ -97,7 +98,7 @@ class ProjetoControllerTest {
     @Test
     @DisplayName("encontrarPorId deveria retornar Status 404 quando ID não existir")
     void encontrarPorId_deveriaRetornarStatus404_quandoIdNaoExistir() throws Exception {
-        when(projetoService.encontrarPorId(projetoId)).thenThrow(new IllegalArgumentException("Projeto não encontrado"));
+        when(projetoService.encontrarPorId(projetoId)).thenThrow(new NotFoundException("Projeto não encontrado"));
 
         mockMvc.perform(get("/projeto/search/{id}", projetoId))
                 .andExpect(status().isNotFound());
@@ -198,7 +199,7 @@ class ProjetoControllerTest {
     @DisplayName("atualizarProjeto deveria retornar Status 404 quando projeto não for encontrado")
     void atualizarProjeto_deveriaRetornarStatus404_quandoProjetoNaoEncontrado() throws Exception {
         when(projetoService.atualizarProjeto(any(UUID.class), any(AtualizarProjetoDTO.class)))
-                .thenThrow(new IllegalArgumentException("Projeto não encontrado"));
+                .thenThrow(new NotFoundException("Projeto não encontrado"));
         
         mockMvc.perform(patch("/projeto/{id}", projetoId)
                 .contentType(MediaType.APPLICATION_JSON)

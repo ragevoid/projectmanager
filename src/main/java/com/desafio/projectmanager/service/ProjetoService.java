@@ -63,8 +63,11 @@ public class ProjetoService {
 
     @Transactional
     public ProjetoDetalhesDTO criarProjeto(ProjetoRequestDTO projetoRequestDTO) {
+
         Membro gerente = membroService.buscarMembroPorID(projetoRequestDTO.getGerenteId());
-        verificarMaximoProjetosPorMembro(gerente);
+
+        verificarSeFuncionario(gerente.getId());
+        verificarMaximoProjetosPorMembro(gerente.getId());
 
         Set<UUID> membrosIdList = new HashSet<>();
         membrosIdList.add(gerente.getId());
@@ -119,7 +122,7 @@ public class ProjetoService {
                     throw new BusinessException(
                             "Para ser gerente, o membro também deve fazer parte da equipe do projeto.");
                 }
-                verificarMaximoProjetosPorMembro(novoGerente);
+                verificarMaximoProjetosPorMembro(novoGerente.getId());
                 projeto.setGerenteId(novoGerente.getId());
             }
         }
@@ -168,11 +171,8 @@ public class ProjetoService {
         Projeto projeto = encontrarEntidadePorId(projetoId);
 
         for (UUID membroId : requestDTO.getMembrosIds()) {
-            Membro membro = membroService.buscarMembroPorID(membroId);
-            if (membro.getAtribuicao() != Atribuicao.FUNCIONARIO) {
-                throw new BusinessException("Membro " + membro.getNome() + " não é FUNCIONARIO.");
-            }
-            verificarMaximoProjetosPorMembro(membro);
+            verificarSeFuncionario(membroId);
+            verificarMaximoProjetosPorMembro(membroId);
             projeto.getMembrosIds().add(membroId);
         }
 
@@ -180,16 +180,24 @@ public class ProjetoService {
         return projetoMapper.toDetalhesDTO(projeto);
     }
 
-    private void verificarMaximoProjetosPorMembro(Membro membro) {
+    private void verificarMaximoProjetosPorMembro(UUID membroId) {
+        Membro membro = membroService.buscarMembroPorID(membroId);
         List<Projeto> projetosAtivos = projetoRepository.findProjetosAtivosPorMembro(membro.getId());
         if (projetosAtivos.size() >= MAXIMO_MEMBROS) {
             throw new BusinessException("Membro " + membro.getNome() + " já está em 3 projetos ativos.");
         }
     }
 
+    private void verificarSeFuncionario(UUID membroId) {
+        Membro membro = membroService.buscarMembroPorID(membroId);
+        if (membro.getAtribuicao() != Atribuicao.FUNCIONARIO) {
+            throw new BusinessException("Membro " + membro.getNome() + " não é FUNCIONARIO.");
+        }
+    }
+
     private Projeto encontrarEntidadePorId(UUID projetoId) {
         Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
+                .orElseThrow(() -> new NotFoundException("Projeto não encontrado com ID: " + projetoId));
         return projeto;
     }
 

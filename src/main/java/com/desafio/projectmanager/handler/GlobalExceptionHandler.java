@@ -22,15 +22,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDetails);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorDetails> handleIllegalArgumentException(IllegalArgumentException ex) {
-        ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                "Entidad não encontrada ou argumento inválido");
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDetails);
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetails> handleGlobalException(Exception ex) {
         ErrorDetails errorDetails = new ErrorDetails(

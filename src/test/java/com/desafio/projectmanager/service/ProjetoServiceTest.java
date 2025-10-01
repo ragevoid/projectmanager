@@ -67,7 +67,7 @@ class ProjetoServiceTest {
         gerente = new Membro();
         gerente.setId(gerenteId);
         gerente.setNome("Gerente Teste");
-        gerente.setAtribuicao(Atribuicao.STAKEHOLDER);
+        gerente.setAtribuicao(Atribuicao.FUNCIONARIO);
 
         projeto = new Projeto();
         projeto.setId(projetoId);
@@ -119,11 +119,11 @@ class ProjetoServiceTest {
     }
 
     @Test
-    @DisplayName("encontrarPorId deveria lançar IllegalArgumentException quando projeto não existir")
-    void encontrarPorId_deveriaLancarIllegalArgumentException_quandoProjetoNaoExistir() {
+    @DisplayName("encontrarPorId deveria lançar NotFoundException quando projeto não existir")
+    void encontrarPorId_deveriaLancarNotFoundException_quandoProjetoNaoExistir() {
         when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> projetoService.encontrarPorId(projetoId));
+        assertThrows(NotFoundException.class, () -> projetoService.encontrarPorId(projetoId));
     }
 
     @Test
@@ -135,7 +135,7 @@ class ProjetoServiceTest {
         when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
         when(projetoMapper.toDetalhesDTO(projeto)).thenReturn(projetoDetalhesDTO);
 
-        // Simular que o projeto mapeado tem os dados do DTO
+        
         projeto.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
         projeto.setOrcamento(projetoRequestDTO.getOrcamento());
 
@@ -265,7 +265,7 @@ class ProjetoServiceTest {
 
         AtualizarProjetoDTO dadosParaAtualizar = new AtualizarProjetoDTO();
         dadosParaAtualizar.setNome("Nome Atualizado");
-        dadosParaAtualizar.setOrcamento(new BigDecimal("600000.00")); // Para forçar recalculo do risco
+        dadosParaAtualizar.setOrcamento(new BigDecimal("600000.00"));
 
         projetoService.atualizarProjeto(projetoId, dadosParaAtualizar);
 
