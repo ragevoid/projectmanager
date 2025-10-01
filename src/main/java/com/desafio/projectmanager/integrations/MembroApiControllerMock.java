@@ -20,10 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 import com.desafio.projectmanager.dto.response.MembroMockadoDTO;
 import com.desafio.projectmanager.model.membro.Atribuicao;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/mock-api/membros")
+@Tag(name = "MembrosApi", description = "Mock Endpoints para o gerenciamento de membros")
 public class MembroApiControllerMock {
 
     private static final Map<UUID, MembroMockadoDTO> membrosMockados = new HashMap<>();
@@ -41,6 +47,11 @@ public class MembroApiControllerMock {
     }
 
     @PostMapping
+    @Operation(summary = "Adiciona um membro na API")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "JSON Com dados de membro criado"),
+            @ApiResponse(responseCode = "505", description = "Erro grave", content = @Content)
+    })
     public ResponseEntity<MembroMockadoDTO> criarMembro(@RequestBody MembroMockadoDTO novoMembro) {
         UUID id = UUID.randomUUID();
         novoMembro.setId(id);
@@ -50,6 +61,11 @@ public class MembroApiControllerMock {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Retorna um membro da API")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "JSON Com dados de membro solicitado"),
+            @ApiResponse(responseCode = "404", description = "Membro não encontrado", content = @Content)
+    })
     public ResponseEntity<MembroMockadoDTO> getMembroPorId(@PathVariable UUID id) {
         MembroMockadoDTO membro = membrosMockados.get(id);
         if (membro != null) {
@@ -62,6 +78,11 @@ public class MembroApiControllerMock {
     }
 
     @GetMapping
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de JSON Com todos os membros"),
+            @ApiResponse(responseCode = "505", description = "Erro grave", content = @Content)
+    })
+    @Operation(summary = "Retorna todos os membros da API")
     public ResponseEntity<List<MembroMockadoDTO>> getAllMembros() {
         return ResponseEntity.ok(new ArrayList<>(membrosMockados.values()));
     }

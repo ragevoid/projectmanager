@@ -9,7 +9,6 @@ import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
-import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.mapper.ProjetoMapper;
@@ -98,7 +97,7 @@ class ProjetoServiceTest {
         when(projetoRepository.findProjetosAtivosPorMembro(gerenteId)).thenReturn(Collections.emptyList());
         when(projetoMapper.toEntity(projetoRequestDTO)).thenReturn(projeto);
         when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
-        when(projetoMapper.toDetalhesDTO(projeto)).thenReturn(projetoDetalhesDTO);
+        when(projetoMapper.toDTO(projeto)).thenReturn(projetoDetalhesDTO);
 
         
         projeto.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
@@ -226,7 +225,7 @@ class ProjetoServiceTest {
     void atualizarProjeto_deveriaAtualizarDadosDoProjeto_quandoDadosValidos() {
         when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
         when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
-        when(projetoMapper.toDetalhesDTO(any(Projeto.class))).thenReturn(projetoDetalhesDTO);
+        when(projetoMapper.toDTO(any(Projeto.class))).thenReturn(projetoDetalhesDTO);
 
         AtualizarProjetoDTO dadosParaAtualizar = new AtualizarProjetoDTO();
         dadosParaAtualizar.setNome("Nome Atualizado");
@@ -326,9 +325,9 @@ class ProjetoServiceTest {
         Page<Projeto> paginaDeProjetos = new PageImpl<>(List.of(projeto));
         
         when(projetoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(paginaDeProjetos);
-        when(projetoMapper.toResumoDTO(any(Projeto.class))).thenReturn(new ProjetoResumoDTO());
+        when(projetoMapper.toDTO(any(Projeto.class))).thenReturn(new ProjetoDetalhesDTO());
 
-        Page<ProjetoResumoDTO> resultado = projetoService.listarProjetosPorFiltro(new ProjetoFiltroDTO(), pageable);
+        Page<ProjetoDetalhesDTO> resultado = projetoService.listarProjetosPorFiltro(new ProjetoFiltroDTO(), pageable);
 
         assertNotNull(resultado);
         assertEquals(1, resultado.getContent().size());

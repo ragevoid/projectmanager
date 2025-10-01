@@ -30,7 +30,6 @@ import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
-import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.model.projeto.StatusProjeto;
@@ -88,7 +87,7 @@ class ProjetoControllerTest {
     @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("listarProjetosPorFiltro deveria retornar Status 200 e uma página de projetos")
     void listarProjetosPorFiltro_deveriaRetornarStatus200EUmaPaginaDeProjetos_quandoFiltrosValidos() throws Exception {
-        Page<ProjetoResumoDTO> paginaDeProjetos = new PageImpl<>(List.of(new ProjetoResumoDTO()));
+        Page<ProjetoDetalhesDTO> paginaDeProjetos = new PageImpl<>(List.of(new ProjetoDetalhesDTO()));
         when(projetoService.listarProjetosPorFiltro(any(ProjetoFiltroDTO.class), any(Pageable.class))).thenReturn(paginaDeProjetos);
 
         mockMvc.perform(post("/projeto/search")

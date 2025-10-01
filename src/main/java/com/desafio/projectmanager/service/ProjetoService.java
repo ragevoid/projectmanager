@@ -18,7 +18,6 @@ import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
-import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
 import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.mapper.ProjetoMapper;
@@ -66,7 +65,7 @@ public class ProjetoService {
         projeto.setClassificacaoRisco(calcularRisco(projeto));
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
-        return projetoMapper.toDetalhesDTO(projetoSalvo);
+        return projetoMapper.toDTO(projetoSalvo);
     }
 
     @Transactional
@@ -116,7 +115,7 @@ public class ProjetoService {
         }
         projeto.setClassificacaoRisco(calcularRisco(projeto));
         Projeto projetoSalvo = projetoRepository.save(projeto);
-        return projetoMapper.toDetalhesDTO(projetoSalvo);
+        return projetoMapper.toDTO(projetoSalvo);
     }
 
     @Transactional
@@ -135,11 +134,11 @@ public class ProjetoService {
         }
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
-        return projetoMapper.toDetalhesDTO(projetoSalvo);
+        return projetoMapper.toDTO(projetoSalvo);
     }
 
     @Transactional
-    public Page<ProjetoResumoDTO> listarProjetosPorFiltro(ProjetoFiltroDTO filtros, Pageable pageable) {
+    public Page<ProjetoDetalhesDTO> listarProjetosPorFiltro(ProjetoFiltroDTO filtros, Pageable pageable) {
         Specification<Projeto> spec = ProjetoSpecification.filterBy(filtros);
         try {
             Page<Projeto> paginaDeProjetos = projetoRepository.findAll(spec, pageable);
@@ -147,7 +146,7 @@ public class ProjetoService {
                 throw new NotFoundException("Projetos não encontrados com os filtros especificados.");
             }
             return paginaDeProjetos.map(projeto -> {
-                return projetoMapper.toResumoDTO(projeto);
+                return projetoMapper.toDTO(projeto);
             });
         } catch (Exception e) {
             throw new NotFoundException("Error obtendo os Projetos: " + e.getMessage());
@@ -166,7 +165,7 @@ public class ProjetoService {
         verificarMaximoMembrosEmProjeto(projeto);
 
         projetoRepository.save(projeto);
-        return projetoMapper.toDetalhesDTO(projeto);
+        return projetoMapper.toDTO(projeto);
     }
 
     private void verificarMaximoProjetosPorMembro(UUID membroId) {
