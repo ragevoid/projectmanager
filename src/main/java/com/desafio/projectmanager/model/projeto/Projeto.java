@@ -61,7 +61,6 @@ public class Projeto {
     private UUID gerenteId;
 
     @ElementCollection
-    @CollectionTable(name = "projeto_membros", joinColumns = @JoinColumn(name = "projeto_id"))
     @Column(name = "membro_id")
     private Set<UUID> membrosIds = new HashSet<>();
 
