@@ -1,12 +1,30 @@
 services:
+  app:
+    build: .
+    container_name: projectmanager-app
+    env_file:
+      - .env
+    ports:
+      - "3333:3333"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - projectmanager-network
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/projectmanager
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
   db:
     image: postgres:17-alpine
     container_name: projectmanager-db
+    env_file:
+      - .env
     ports:
       - "5454:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=ppqqll13
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=projectmanager
     volumes:
       - pgdata:/var/lib/postgresql/data
