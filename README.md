@@ -7,6 +7,13 @@ O sistema se integra com uma API externa (mockada) para a gestão de membros da 
 
 ---
 
+## 📑 Sumário
+1. [Descrição do Projeto](#descrição-do-projeto)
+2. [Regras de Negócio](#regras-de-negócio)
+3. [Princípios de Desenvolvimento](#princípios-de-desenvolvimento)
+4. [Testando o Projeto](#testando-o-projeto)   
+---
+
 ## Regras de Negócio
 
 ### Gerenciamento de Projetos
