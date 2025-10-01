@@ -15,7 +15,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -73,6 +72,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("criarProjeto deveria retornar Status 200 e o DTO do projeto quando dados forem válidos")
     void criarProjeto_deveriaRetornarStatus200EOProjetoCriado_quandoDadosForemValidos() throws Exception {
         when(projetoService.criarProjeto(any(ProjetoRequestDTO.class))).thenReturn(projetoDetalhesDTO);
@@ -86,6 +86,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("encontrarPorId deveria retornar Status 200 e o DTO do projeto quando ID existir")
     void encontrarPorId_deveriaRetornarStatus200EOProjeto_quandoIdExistir() throws Exception {
         when(projetoService.encontrarPorId(projetoId)).thenReturn(projetoDetalhesDTO);
@@ -96,6 +97,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("encontrarPorId deveria retornar Status 404 quando ID não existir")
     void encontrarPorId_deveriaRetornarStatus404_quandoIdNaoExistir() throws Exception {
         when(projetoService.encontrarPorId(projetoId)).thenThrow(new NotFoundException("Projeto não encontrado"));
@@ -105,6 +107,7 @@ class ProjetoControllerTest {
     }
     
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("listarProjetosPorFiltro deveria retornar Status 200 e uma página de projetos")
     void listarProjetosPorFiltro_deveriaRetornarStatus200EUmaPaginaDeProjetos_quandoFiltrosValidos() throws Exception {
         Page<ProjetoResumoDTO> paginaDeProjetos = new PageImpl<>(List.of(new ProjetoResumoDTO()));
@@ -119,6 +122,7 @@ class ProjetoControllerTest {
     }
     
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("eliminarProjeto deveria retornar Status 204 quando exclusão for bem-sucedida")
     void eliminarProjeto_deveriaRetornarStatus204_quandoExclusaoForBemSucedida() throws Exception {
         doNothing().when(projetoService).eliminarProjeto(projetoId);
@@ -128,6 +132,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("eliminarProjeto deveria retornar Status 400 quando exclusão não for permitida")
     void eliminarProjeto_deveriaRetornarStatus400_quandoExclusaoNaoForPermitida() throws Exception {
         doThrow(new BusinessException("Exclusão não permitida")).when(projetoService).eliminarProjeto(projetoId);
@@ -137,6 +142,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("alterarStatus deveria retornar Status 200 e o projeto atualizado quando transição for válida")
     void alterarStatus_deveriaRetornarStatus200EOProjetoAtualizado_quandoTransicaoDeStatusForValida() throws Exception {
         StatusProjeto novoStatus = StatusProjeto.EM_ANDAMENTO;
@@ -148,6 +154,7 @@ class ProjetoControllerTest {
     }
     
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("alterarStatus deveria retornar Status 400 quando transição de status for inválida")
     void alterarStatus_deveriaRetornarStatus400_quandoTransicaoDeStatusForInvalida() throws Exception {
         StatusProjeto novoStatus = StatusProjeto.CANCELADO;
@@ -158,6 +165,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("adicionarMembrosAoProjeto deveria retornar Status 200 e o projeto atualizado")
     void adicionarMembrosAoProjeto_deveriaRetornarStatus200EOProjetoAtualizado_quandoAdicaoForBemSucedida() throws Exception {
         AdicionarMembrosRequestDTO requestDTO = new AdicionarMembrosRequestDTO();
@@ -171,6 +179,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("adicionarMembrosAoProjeto deveria retornar Status 400 quando regra de negócio for violada")
     void adicionarMembrosAoProjeto_deveriaRetornarStatus400_quandoRegraDeNegocioForViolada() throws Exception {
         AdicionarMembrosRequestDTO requestDTO = new AdicionarMembrosRequestDTO();
@@ -184,6 +193,7 @@ class ProjetoControllerTest {
     }
     
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("atualizarProjeto deveria retornar Status 200 e o projeto atualizado quando dados forem válidos")
     void atualizarProjeto_deveriaRetornarStatus200EOProjetoAtualizado_quandoDadosForemValidos() throws Exception {
         when(projetoService.atualizarProjeto(any(UUID.class), any(AtualizarProjetoDTO.class))).thenReturn(projetoDetalhesDTO);
@@ -196,6 +206,7 @@ class ProjetoControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
     @DisplayName("atualizarProjeto deveria retornar Status 404 quando projeto não for encontrado")
     void atualizarProjeto_deveriaRetornarStatus404_quandoProjetoNaoEncontrado() throws Exception {
         when(projetoService.atualizarProjeto(any(UUID.class), any(AtualizarProjetoDTO.class)))

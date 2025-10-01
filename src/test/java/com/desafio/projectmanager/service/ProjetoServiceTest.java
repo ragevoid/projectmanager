@@ -359,6 +359,7 @@ class ProjetoServiceTest {
     void listarProjetosPorFiltro_deveriaRetornarPaginaDeProjetos_quandoFiltrosCorresponderem() {
         Pageable pageable = Pageable.unpaged();
         Page<Projeto> paginaDeProjetos = new PageImpl<>(List.of(projeto));
+        
         when(projetoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(paginaDeProjetos);
         when(projetoMapper.toResumoDTO(any(Projeto.class))).thenReturn(new ProjetoResumoDTO());
 
@@ -372,6 +373,7 @@ class ProjetoServiceTest {
     @DisplayName("listarProjetosPorFiltro deveria lançar NotFoundException quando nenhum projeto corresponder")
     void listarProjetosPorFiltro_deveriaLancarNotFoundException_quandoNenhumProjetoCorresponder() {
         Pageable pageable = Pageable.unpaged();
+
         when(projetoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
         assertThrows(NotFoundException.class,

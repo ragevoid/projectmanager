@@ -47,6 +47,7 @@ public class ProjetoService {
     private static final long PRAZO_RISCO_BAIXO_MESES = 3;
     private static final long PRAZO_RISCO_ALTO_MESES = 6;
     private static final long MAXIMO_MEMBROS = 10;
+    private static final long MAXIMO_PROJETOS = 3;
 
     public List<ProjetoResumoDTO> listarProjetos() {
         return projetoRepository.findAllByDeletedFalse().stream()
@@ -175,6 +176,7 @@ public class ProjetoService {
             verificarMaximoProjetosPorMembro(membroId);
             projeto.getMembrosIds().add(membroId);
         }
+        verificarMaximoMembrosEmProjeto(projeto);
 
         projetoRepository.save(projeto);
         return projetoMapper.toDetalhesDTO(projeto);
@@ -183,8 +185,15 @@ public class ProjetoService {
     private void verificarMaximoProjetosPorMembro(UUID membroId) {
         Membro membro = membroService.buscarMembroPorID(membroId);
         List<Projeto> projetosAtivos = projetoRepository.findProjetosAtivosPorMembro(membro.getId());
-        if (projetosAtivos.size() >= MAXIMO_MEMBROS) {
+        if (projetosAtivos.size() >= MAXIMO_PROJETOS) {
             throw new BusinessException("Membro " + membro.getNome() + " já está em 3 projetos ativos.");
+        }
+    }
+
+        private void verificarMaximoMembrosEmProjeto(Projeto projeto) {
+        long quantidadeMembros = projeto.getMembrosIds().size();  
+        if (quantidadeMembros >= MAXIMO_MEMBROS) {
+            throw new BusinessException("Maximo de membro por projeto é de apenas " + MAXIMO_MEMBROS);
         }
     }
 

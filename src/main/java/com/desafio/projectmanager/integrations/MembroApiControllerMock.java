@@ -35,7 +35,7 @@ public class MembroApiControllerMock {
         criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "João Silva", Atribuicao.CONVIDADO));
         criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Ashley Saint", Atribuicao.FUNCIONARIO));
         criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Ricardo Gonzalez", Atribuicao.FUNCIONARIO));
-        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Juan Pereira", Atribuicao.STAKEHOLDER));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Juan Rodrigues", Atribuicao.STAKEHOLDER));
         criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Maria Rodrigues", Atribuicao.CONVIDADO));
         logger.info("API Mock de Membros populada com {} usuários.", membrosMockados.size());
     }
