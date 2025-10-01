@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -45,7 +46,15 @@ public class GlobalExceptionHandler {
         ErrorDetails errorDetails = new ErrorDetails(
                 LocalDateTime.now(),
                 ex.getMessage(),
-                "Recurso no encontrado");
+                "Recurso não encontrado");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDetails);
     }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorDetails> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                ex.getMessage(),
+                "Body da requisição não se encontra");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDetails);
+}
 }
