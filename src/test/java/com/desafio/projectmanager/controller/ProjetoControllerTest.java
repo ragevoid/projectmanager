@@ -2,31 +2,45 @@ package com.desafio.projectmanager.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.hamcrest.CoreMatchers.is;
 
-import com.desafio.projectmanager.dto.request.AdicionarMembrosRequestDTO;
-import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
-import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
-import com.desafio.projectmanager.service.ProjetoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.UUID;
+import com.desafio.projectmanager.dto.request.AdicionarMembrosRequestDTO;
+import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
+import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
+import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
+import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
+import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
+import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.model.projeto.StatusProjeto;
+import com.desafio.projectmanager.service.ProjetoService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class ProjetoControllerTest {
+@DisplayName("Testes para ProjetoController")
+class ProjetoControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,76 +51,158 @@ public class ProjetoControllerTest {
     @MockitoBean
     private ProjetoService projetoService;
 
+    private UUID projetoId;
+    private ProjetoRequestDTO projetoRequestDTO;
+    private ProjetoDetalhesDTO projetoDetalhesDTO;
+    private AtualizarProjetoDTO atualizarProjetoDTO;
+
+    @BeforeEach
+    void setUp() {
+        projetoId = UUID.randomUUID();
+
+        projetoRequestDTO = new ProjetoRequestDTO();
+        projetoRequestDTO.setNome("Novo Projeto via Controller");
+        
+        projetoDetalhesDTO = new ProjetoDetalhesDTO();
+        projetoDetalhesDTO.setId(projetoId);
+        projetoDetalhesDTO.setNome("Projeto Detalhes DTO");
+        
+        atualizarProjetoDTO = new AtualizarProjetoDTO();
+        atualizarProjetoDTO.setNome("Projeto com nome atualizado");
+    }
+
     @Test
-    @DisplayName("POST /projeto - Deve criar um projeto e retornar status 201 Created")
-    void criarProjeto_deveRetornar201() throws Exception {
-        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
-        requestDTO.setNome("Projeto via Teste");
-        requestDTO.setGerenteId(UUID.randomUUID());
-        
-        ProjetoDetalhesDTO responseDTO = new ProjetoDetalhesDTO();
-        responseDTO.setId(UUID.randomUUID());
-        responseDTO.setNome("Projeto via Teste");
-        
-        when(projetoService.criarProjeto(any(ProjetoRequestDTO.class))).thenReturn(responseDTO);
+    @DisplayName("criarProjeto deveria retornar Status 200 e o DTO do projeto quando dados forem válidos")
+    void criarProjeto_deveriaRetornarStatus200EOProjetoCriado_quandoDadosForemValidos() throws Exception {
+        when(projetoService.criarProjeto(any(ProjetoRequestDTO.class))).thenReturn(projetoDetalhesDTO);
 
         mockMvc.perform(post("/projeto")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDTO)))
-                .andExpect(status().isOk()) 
-                .andExpect(jsonPath("$.nome").value("Projeto via Teste"));
+                .content(objectMapper.writeValueAsString(projetoRequestDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(projetoDetalhesDTO.getId().toString())))
+                .andExpect(jsonPath("$.nome", is(projetoDetalhesDTO.getNome())));
     }
 
     @Test
-    @DisplayName("GET /projeto/search/{id} - Deve encontrar um projeto e retornar status 200 OK")
-    void encontrarPorId_deveRetornar200() throws Exception {
-        UUID id = UUID.randomUUID();
-        ProjetoDetalhesDTO responseDTO = new ProjetoDetalhesDTO();
-        responseDTO.setId(id);
-        
-        when(projetoService.encontrarPorId(id)).thenReturn(responseDTO);
+    @DisplayName("encontrarPorId deveria retornar Status 200 e o DTO do projeto quando ID existir")
+    void encontrarPorId_deveriaRetornarStatus200EOProjeto_quandoIdExistir() throws Exception {
+        when(projetoService.encontrarPorId(projetoId)).thenReturn(projetoDetalhesDTO);
 
-        mockMvc.perform(get("/projeto/search/{id}", id))
+        mockMvc.perform(get("/projeto/search/{id}", projetoId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id.toString()));
+                .andExpect(jsonPath("$.id", is(projetoId.toString())));
+    }
+
+    @Test
+    @DisplayName("encontrarPorId deveria retornar Status 404 quando ID não existir")
+    void encontrarPorId_deveriaRetornarStatus404_quandoIdNaoExistir() throws Exception {
+        when(projetoService.encontrarPorId(projetoId)).thenThrow(new IllegalArgumentException("Projeto não encontrado"));
+
+        mockMvc.perform(get("/projeto/search/{id}", projetoId))
+                .andExpect(status().isNotFound());
     }
     
     @Test
-    @DisplayName("DELETE /{id} - Deve excluir um projeto e retornar status 204 No Content")
-    void eliminarProjeto_deveRetornar204() throws Exception {
-        UUID id = UUID.randomUUID();
-        doNothing().when(projetoService).eliminarProjeto(id);
+    @DisplayName("listarProjetosPorFiltro deveria retornar Status 200 e uma página de projetos")
+    void listarProjetosPorFiltro_deveriaRetornarStatus200EUmaPaginaDeProjetos_quandoFiltrosValidos() throws Exception {
+        Page<ProjetoResumoDTO> paginaDeProjetos = new PageImpl<>(List.of(new ProjetoResumoDTO()));
+        when(projetoService.listarProjetosPorFiltro(any(ProjetoFiltroDTO.class), any(Pageable.class))).thenReturn(paginaDeProjetos);
 
-        mockMvc.perform(delete("/projeto/{id}", id))
+        mockMvc.perform(post("/projeto/search")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new ProjetoFiltroDTO())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements", is(1)));
+    }
+    
+    @Test
+    @DisplayName("eliminarProjeto deveria retornar Status 204 quando exclusão for bem-sucedida")
+    void eliminarProjeto_deveriaRetornarStatus204_quandoExclusaoForBemSucedida() throws Exception {
+        doNothing().when(projetoService).eliminarProjeto(projetoId);
+        
+        mockMvc.perform(delete("/projeto/{id}", projetoId))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("POST /projeto/{id}/membros - Deve adicionar membros e retornar status 200 OK")
-    void adicionarMembrosAoProjeto_deveRetornar200() throws Exception {
-        UUID projetoId = UUID.randomUUID();
-        UUID membroId = UUID.randomUUID();
-        AdicionarMembrosRequestDTO requestDTO = new AdicionarMembrosRequestDTO();
-        requestDTO.setMembrosIds(List.of(membroId));
-        
-        when(projetoService.adicionarMembros(anyList(), any(UUID.class))).thenReturn(new ProjetoDetalhesDTO());
-        
-        mockMvc.perform(post("/projeto/{projetoId}/membros", projetoId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDTO)))
-                .andExpect(status().isOk());
+    @DisplayName("eliminarProjeto deveria retornar Status 400 quando exclusão não for permitida")
+    void eliminarProjeto_deveriaRetornarStatus400_quandoExclusaoNaoForPermitida() throws Exception {
+        doThrow(new BusinessException("Exclusão não permitida")).when(projetoService).eliminarProjeto(projetoId);
+
+        mockMvc.perform(delete("/projeto/{id}", projetoId))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("alterarStatus deveria retornar Status 200 e o projeto atualizado quando transição for válida")
+    void alterarStatus_deveriaRetornarStatus200EOProjetoAtualizado_quandoTransicaoDeStatusForValida() throws Exception {
+        StatusProjeto novoStatus = StatusProjeto.EM_ANDAMENTO;
+        when(projetoService.alterarStatus(projetoId, novoStatus)).thenReturn(projetoDetalhesDTO);
+
+        mockMvc.perform(patch("/projeto/{id}/status/{novoStatus}", projetoId, novoStatus))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(projetoId.toString())));
     }
     
     @Test
-    @DisplayName("POST /projeto - Deve retornar status 400 Bad Request para DTO inválido")
-    void criarProjeto_deveRetornar400_quandoDTOInvalido() throws Exception {
+    @DisplayName("alterarStatus deveria retornar Status 400 quando transição de status for inválida")
+    void alterarStatus_deveriaRetornarStatus400_quandoTransicaoDeStatusForInvalida() throws Exception {
+        StatusProjeto novoStatus = StatusProjeto.CANCELADO;
+        when(projetoService.alterarStatus(projetoId, novoStatus)).thenThrow(new BusinessException("Transição inválida"));
 
-        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
-        requestDTO.setGerenteId(UUID.randomUUID());
+        mockMvc.perform(patch("/projeto/{id}/status/{novoStatus}", projetoId, novoStatus))
+                .andExpect(status().isBadRequest());
+    }
 
-        mockMvc.perform(post("/projeto")
+    @Test
+    @DisplayName("adicionarMembrosAoProjeto deveria retornar Status 200 e o projeto atualizado")
+    void adicionarMembrosAoProjeto_deveriaRetornarStatus200EOProjetoAtualizado_quandoAdicaoForBemSucedida() throws Exception {
+        AdicionarMembrosRequestDTO requestDTO = new AdicionarMembrosRequestDTO();
+        when(projetoService.adicionarMembros(any(AdicionarMembrosRequestDTO.class), any(UUID.class))).thenReturn(projetoDetalhesDTO);
+
+        mockMvc.perform(post("/projeto/{projetoId}/membros", projetoId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(projetoId.toString())));
+    }
+
+    @Test
+    @DisplayName("adicionarMembrosAoProjeto deveria retornar Status 400 quando regra de negócio for violada")
+    void adicionarMembrosAoProjeto_deveriaRetornarStatus400_quandoRegraDeNegocioForViolada() throws Exception {
+        AdicionarMembrosRequestDTO requestDTO = new AdicionarMembrosRequestDTO();
+        when(projetoService.adicionarMembros(any(AdicionarMembrosRequestDTO.class), any(UUID.class)))
+                .thenThrow(new BusinessException("Membro inválido"));
+
+        mockMvc.perform(post("/projeto/{projetoId}/membros", projetoId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isBadRequest());
+    }
+    
+    @Test
+    @DisplayName("atualizarProjeto deveria retornar Status 200 e o projeto atualizado quando dados forem válidos")
+    void atualizarProjeto_deveriaRetornarStatus200EOProjetoAtualizado_quandoDadosForemValidos() throws Exception {
+        when(projetoService.atualizarProjeto(any(UUID.class), any(AtualizarProjetoDTO.class))).thenReturn(projetoDetalhesDTO);
+        
+        mockMvc.perform(patch("/projeto/{id}", projetoId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(atualizarProjetoDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(projetoId.toString())));
+    }
+
+    @Test
+    @DisplayName("atualizarProjeto deveria retornar Status 404 quando projeto não for encontrado")
+    void atualizarProjeto_deveriaRetornarStatus404_quandoProjetoNaoEncontrado() throws Exception {
+        when(projetoService.atualizarProjeto(any(UUID.class), any(AtualizarProjetoDTO.class)))
+                .thenThrow(new IllegalArgumentException("Projeto não encontrado"));
+        
+        mockMvc.perform(patch("/projeto/{id}", projetoId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(atualizarProjetoDTO)))
+                .andExpect(status().isNotFound());
     }
 }

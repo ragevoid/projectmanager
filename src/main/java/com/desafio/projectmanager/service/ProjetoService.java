@@ -159,7 +159,7 @@ public class ProjetoService {
                 return projetoMapper.toResumoDTO(projeto);
             });
         } catch (Exception e) {
-            throw new IllegalArgumentException("Error obtendo os Projetos: " + e.getMessage());
+            throw new NotFoundException("Error obtendo os Projetos: " + e.getMessage());
         }
     }
 

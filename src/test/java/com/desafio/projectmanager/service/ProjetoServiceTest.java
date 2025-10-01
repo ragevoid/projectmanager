@@ -4,10 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.desafio.projectmanager.dto.request.AdicionarMembrosRequestDTO;
 import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
+import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
 import com.desafio.projectmanager.dto.response.ProjetoDetalhesDTO;
+import com.desafio.projectmanager.dto.response.ProjetoResumoDTO;
 import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.mapper.ProjetoMapper;
 import com.desafio.projectmanager.model.membro.Atribuicao;
 import com.desafio.projectmanager.model.membro.Membro;
@@ -23,12 +27,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Testes para ProjetoService")
 class ProjetoServiceTest {
 
     @Mock
@@ -43,169 +52,392 @@ class ProjetoServiceTest {
     @InjectMocks
     private ProjetoService projetoService;
 
-    private Projeto projetoPadrao;
-    private Membro gerentePadrao;
+    private UUID projetoId;
+    private UUID gerenteId;
+    private Projeto projeto;
+    private ProjetoRequestDTO projetoRequestDTO;
+    private ProjetoDetalhesDTO projetoDetalhesDTO;
+    private Membro gerente;
 
     @BeforeEach
     void setUp() {
-        gerentePadrao = new Membro();
-        gerentePadrao.setId(UUID.randomUUID());
-        gerentePadrao.setNome("Gerente Teste");
-        gerentePadrao.setAtribuicao(Atribuicao.FUNCIONARIO);
+        projetoId = UUID.randomUUID();
+        gerenteId = UUID.randomUUID();
 
-        projetoPadrao = new Projeto();
-        projetoPadrao.setId(UUID.randomUUID());
-        projetoPadrao.setNome("Projeto Teste");
-        projetoPadrao.setStatus(StatusProjeto.EM_ANALISE);
-        projetoPadrao.setDeleted(false);
-        projetoPadrao.setGerente(gerentePadrao);
-        projetoPadrao.setMembros(new HashSet<>(Set.of(gerentePadrao)));
-        projetoPadrao.setOrcamento(new BigDecimal("50000"));
-        projetoPadrao.setDataInicio(LocalDate.now());
-        projetoPadrao.setDataFinalPrevisao(LocalDate.now().plusMonths(1));
+        gerente = new Membro();
+        gerente.setId(gerenteId);
+        gerente.setNome("Gerente Teste");
+        gerente.setAtribuicao(Atribuicao.STAKEHOLDER);
+
+        projeto = new Projeto();
+        projeto.setId(projetoId);
+        projeto.setNome("Projeto Teste");
+        projeto.setGerenteId(gerenteId);
+        projeto.setStatus(StatusProjeto.EM_ANALISE);
+        projeto.setDataInicio(LocalDate.now());
+        projeto.setDataFinalPrevisao(LocalDate.now().plusMonths(2));
+        projeto.setOrcamento(new BigDecimal("50000.00"));
+        projeto.setMembrosIds(new HashSet<>(Set.of(gerenteId)));
+
+        projetoRequestDTO = new ProjetoRequestDTO();
+        projetoRequestDTO.setNome("Novo Projeto");
+        projetoRequestDTO.setGerenteId(gerenteId);
+        projetoRequestDTO.setDataInicio(LocalDate.now());
+        projetoRequestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(5));
+        projetoRequestDTO.setOrcamento(new BigDecimal("200000.00"));
+
+        projetoDetalhesDTO = new ProjetoDetalhesDTO();
+        projetoDetalhesDTO.setId(projetoId);
+        projetoDetalhesDTO.setNome("Projeto Detalhes");
     }
 
     @Test
-    @DisplayName("Deve criar projeto com sucesso")
-    void criarProjeto_deveRetornarProjetoDetalhesDTO() {
-        ProjetoRequestDTO requestDTO = new ProjetoRequestDTO();
-        requestDTO.setGerenteId(gerentePadrao.getId());
+    @DisplayName("listarProjetos deveria retornar lista de DTOs quando existirem projetos")
+    void listarProjetos_deveriaRetornarListaDeProjetosResumoDTO_quandoExistiremProjetos() {
+        when(projetoRepository.findAllByDeletedFalse()).thenReturn(List.of(projeto));
+        when(projetoMapper.toResumoDTO(any(Projeto.class))).thenReturn(new ProjetoResumoDTO());
 
-        when(membroService.buscarMembroAPIPorId(any(UUID.class))).thenReturn(gerentePadrao);
-        when(projetoMapper.toEntity(any(ProjetoRequestDTO.class))).thenReturn(projetoPadrao);
-        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoPadrao);
-        when(projetoMapper.toDetalhesDTO(any(Projeto.class), any(Risco.class))).thenReturn(new ProjetoDetalhesDTO());
+        List<ProjetoResumoDTO> resultado = projetoService.listarProjetos();
 
-        projetoService.criarProjeto(requestDTO);
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+        verify(projetoRepository).findAllByDeletedFalse();
+        verify(projetoMapper).toResumoDTO(projeto);
+    }
+
+    @Test
+    @DisplayName("encontrarPorId deveria retornar DTO de detalhes quando projeto existir")
+    void encontrarPorId_deveriaRetornarProjetoDetalhesDTO_quandoProjetoExistir() {
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(projetoMapper.toDetalhesDTO(projeto)).thenReturn(projetoDetalhesDTO);
+
+        ProjetoDetalhesDTO resultado = projetoService.encontrarPorId(projetoId);
+
+        assertNotNull(resultado);
+        assertEquals(projetoDetalhesDTO.getId(), resultado.getId());
+        verify(projetoRepository).findByIdAndDeletedFalse(projetoId);
+    }
+
+    @Test
+    @DisplayName("encontrarPorId deveria lançar IllegalArgumentException quando projeto não existir")
+    void encontrarPorId_deveriaLancarIllegalArgumentException_quandoProjetoNaoExistir() {
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> projetoService.encontrarPorId(projetoId));
+    }
+
+    @Test
+    @DisplayName("criarProjeto deveria salvar e retornar o projeto com risco MEDIO")
+    void criarProjeto_deveriaCriarEretornarProjeto_quandoDadosForemValidosComRiscoMedio() {
+        when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);
+        when(projetoRepository.findProjetosAtivosPorMembro(gerenteId)).thenReturn(Collections.emptyList());
+        when(projetoMapper.toEntity(projetoRequestDTO)).thenReturn(projeto);
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
+        when(projetoMapper.toDetalhesDTO(projeto)).thenReturn(projetoDetalhesDTO);
+
+        // Simular que o projeto mapeado tem os dados do DTO
+        projeto.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
+        projeto.setOrcamento(projetoRequestDTO.getOrcamento());
+
+        ProjetoDetalhesDTO resultado = projetoService.criarProjeto(projetoRequestDTO);
 
         ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
         verify(projetoRepository).save(projetoCaptor.capture());
         Projeto projetoSalvo = projetoCaptor.getValue();
 
-        assertNotNull(projetoSalvo.getGerente());
-        assertEquals("Gerente Teste", projetoSalvo.getGerente().getNome());
-        assertTrue(projetoSalvo.getMembros().contains(gerentePadrao));
-    }
-
-    @Test
-    @DisplayName("Deve encontrar projeto por ID e retornar DTO de detalhes")
-    void encontrarPorId_deveRetornarDTO_quandoEncontrado() {
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-        when(projetoMapper.toDetalhesDTO(any(Projeto.class), any(Risco.class))).thenReturn(new ProjetoDetalhesDTO());
-
-        ProjetoDetalhesDTO resultado = projetoService.encontrarPorId(projetoPadrao.getId());
-
         assertNotNull(resultado);
-        verify(projetoRepository).findByIdAndDeletedFalse(projetoPadrao.getId());
-        verify(projetoMapper).toDetalhesDTO(projetoPadrao, Risco.BAIXO);
+        assertEquals(Risco.MEDIO, projetoSalvo.getClassificacaoRisco());
+        assertEquals(gerenteId, projetoSalvo.getGerenteId());
+        assertTrue(projetoSalvo.getMembrosIds().contains(gerenteId));
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao buscar por ID inexistente")
-    void encontrarPorId_deveLancarExcecao_quandoNaoEncontrado() {
-        UUID idInexistente = UUID.randomUUID();
-        when(projetoRepository.findByIdAndDeletedFalse(idInexistente)).thenReturn(Optional.empty());
+    @DisplayName("criarProjeto deveria definir risco BAIXO quando orçamento e prazo forem baixos")
+    void criarProjeto_deveriaDefinirRiscoBaixo_quandoOrcamentoEPrazoForemBaixos() {
+        projetoRequestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(3));
+        projetoRequestDTO.setOrcamento(new BigDecimal("100000.00"));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            projetoService.encontrarPorId(idInexistente);
-        });
-    }
+        Projeto projetoRiscoBaixo = new Projeto();
+        projetoRiscoBaixo.setDataInicio(projetoRequestDTO.getDataInicio());
+        projetoRiscoBaixo.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
+        projetoRiscoBaixo.setOrcamento(projetoRequestDTO.getOrcamento());
 
-    @Test
-    @DisplayName("Deve excluir projeto (soft delete) com status permitido")
-    void eliminarProjeto_deveMarcarComoExcluido_quandoStatusPermitido() {
+        when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);
+        when(projetoRepository.findProjetosAtivosPorMembro(gerenteId)).thenReturn(Collections.emptyList());
+        when(projetoMapper.toEntity(projetoRequestDTO)).thenReturn(projetoRiscoBaixo);
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoRiscoBaixo);
 
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-
-        projetoService.eliminarProjeto(projetoPadrao.getId());
+        projetoService.criarProjeto(projetoRequestDTO);
 
         ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
         verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertEquals(Risco.BAIXO, projetoCaptor.getValue().getClassificacaoRisco());
+    }
+
+    @Test
+    @DisplayName("criarProjeto deveria definir risco ALTO quando prazo for longo")
+    void criarProjeto_deveriaDefinirRiscoAlto_quandoPrazoForLongo() {
+        projetoRequestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(7));
+        projetoRequestDTO.setOrcamento(new BigDecimal("200000.00"));
+
+        Projeto projetoRiscoAlto = new Projeto();
+        projetoRiscoAlto.setDataInicio(projetoRequestDTO.getDataInicio());
+        projetoRiscoAlto.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
+        projetoRiscoAlto.setOrcamento(projetoRequestDTO.getOrcamento());
+
+        when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);
+        when(projetoRepository.findProjetosAtivosPorMembro(gerenteId)).thenReturn(Collections.emptyList());
+        when(projetoMapper.toEntity(projetoRequestDTO)).thenReturn(projetoRiscoAlto);
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoRiscoAlto);
+
+        projetoService.criarProjeto(projetoRequestDTO);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertEquals(Risco.ALTO, projetoCaptor.getValue().getClassificacaoRisco());
+    }
+
+    @Test
+    @DisplayName("criarProjeto deveria definir risco ALTO quando orçamento for alto")
+    void criarProjeto_deveriaDefinirRiscoAlto_quandoOrcamentoForAlto() {
+        projetoRequestDTO.setDataFinalPrevisao(LocalDate.now().plusMonths(5));
+        projetoRequestDTO.setOrcamento(new BigDecimal("500000.01"));
+
+        Projeto projetoRiscoAlto = new Projeto();
+        projetoRiscoAlto.setDataInicio(projetoRequestDTO.getDataInicio());
+        projetoRiscoAlto.setDataFinalPrevisao(projetoRequestDTO.getDataFinalPrevisao());
+        projetoRiscoAlto.setOrcamento(projetoRequestDTO.getOrcamento());
+
+        when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);
+        when(projetoRepository.findProjetosAtivosPorMembro(gerenteId)).thenReturn(Collections.emptyList());
+        when(projetoMapper.toEntity(projetoRequestDTO)).thenReturn(projetoRiscoAlto);
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoRiscoAlto);
+
+        projetoService.criarProjeto(projetoRequestDTO);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertEquals(Risco.ALTO, projetoCaptor.getValue().getClassificacaoRisco());
+    }
+
+    @Test
+    @DisplayName("criarProjeto deveria lançar BusinessException quando gerente atingir máximo de projetos")
+    void criarProjeto_deveriaLancarBusinessException_quandoGerenteAtingirMaximoDeProjetos() {
+        when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);
+        when(projetoRepository.findProjetosAtivosPorMembro(gerenteId))
+                .thenReturn(Collections.nCopies(10, new Projeto()));
+
+        assertThrows(BusinessException.class, () -> projetoService.criarProjeto(projetoRequestDTO));
+    }
+
+    @Test
+    @DisplayName("eliminarProjeto deveria marcar como deletado quando status for permitido")
+    void eliminarProjeto_deveriaMarcarProjetoComoDeletado_quandoStatusPermitirExclusao() {
+        projeto.setStatus(StatusProjeto.ANALISE_REALIZADA);
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+
+        projetoService.eliminarProjeto(projetoId);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
         assertTrue(projetoCaptor.getValue().getDeleted());
     }
 
     @Test
-    @DisplayName("Deve lançar BusinessException ao tentar excluir projeto com status INICIADO")
-    void eliminarProjeto_deveLancarExcecao_quandoStatusNaoPermitido() {
+    @DisplayName("eliminarProjeto deveria lançar BusinessException quando status for INICIADO")
+    void eliminarProjeto_deveriaLancarBusinessException_quandoStatusNaoPermitirExclusao() {
+        projeto.setStatus(StatusProjeto.INICIADO);
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
 
-        projetoPadrao.setStatus(StatusProjeto.INICIADO);
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-
-        assertThrows(BusinessException.class, () -> {
-            projetoService.eliminarProjeto(projetoPadrao.getId());
-        });
-        verify(projetoRepository, never()).save(any());
+        assertThrows(BusinessException.class, () -> projetoService.eliminarProjeto(projetoId));
     }
 
     @Test
-    @DisplayName("Deve atualizar campos do projeto com sucesso")
-    void atualizarProjeto_deveAtualizarCamposCorretamente() {
+    @DisplayName("atualizarProjeto deveria alterar os dados e recalcular o risco")
+    void atualizarProjeto_deveriaAtualizarDadosDoProjeto_quandoDadosValidos() {
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
+        when(projetoMapper.toDetalhesDTO(any(Projeto.class))).thenReturn(projetoDetalhesDTO);
 
-        AtualizarProjetoDTO dto = new AtualizarProjetoDTO();
-        dto.setNome("Novo Nome do Projeto");
-        dto.setOrcamento(new BigDecimal("99999"));
+        AtualizarProjetoDTO dadosParaAtualizar = new AtualizarProjetoDTO();
+        dadosParaAtualizar.setNome("Nome Atualizado");
+        dadosParaAtualizar.setOrcamento(new BigDecimal("600000.00")); // Para forçar recalculo do risco
 
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoPadrao);
-        when(projetoMapper.toDetalhesDTO(any(Projeto.class), any(Risco.class))).thenReturn(new ProjetoDetalhesDTO());
+        projetoService.atualizarProjeto(projetoId, dadosParaAtualizar);
 
-        projetoService.atualizarProjeto(projetoPadrao.getId(), dto);
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+        Projeto projetoSalvo = projetoCaptor.getValue();
 
-        ArgumentCaptor<Projeto> captor = ArgumentCaptor.forClass(Projeto.class);
-        verify(projetoRepository).save(captor.capture());
-
-        assertEquals("Novo Nome do Projeto", captor.getValue().getNome());
-        assertEquals(new BigDecimal("99999"), captor.getValue().getOrcamento());
+        assertEquals("Nome Atualizado", projetoSalvo.getNome());
+        assertEquals(new BigDecimal("600000.00"), projetoSalvo.getOrcamento());
+        assertEquals(Risco.ALTO, projetoSalvo.getClassificacaoRisco());
     }
 
     @Test
-    @DisplayName("Deve lançar BusinessException ao tentar atualizar projeto ENCERRADO")
-    void atualizarProjeto_deveLancarExcecao_quandoProjetoEncerrado() {
+    @DisplayName("atualizarProjeto deveria lançar BusinessException quando projeto estiver ENCERRADO")
+    void atualizarProjeto_deveriaLancarBusinessException_quandoStatusForEncerrado() {
+        projeto.setStatus(StatusProjeto.ENCERRADO);
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
 
-        projetoPadrao.setStatus(StatusProjeto.ENCERRADO);
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-
-        assertThrows(BusinessException.class, () -> {
-            projetoService.atualizarProjeto(projetoPadrao.getId(), new AtualizarProjetoDTO());
-        });
+        assertThrows(BusinessException.class,
+                () -> projetoService.atualizarProjeto(projetoId, new AtualizarProjetoDTO()));
     }
 
     @Test
-    @DisplayName("Deve adicionar membros a um projeto com sucesso")
-    void adicionarMembros_deveAdicionarMembros() {
+    @DisplayName("atualizarProjeto deveria lançar BusinessException quando novo gerente não for membro")
+    void atualizarProjeto_deveriaLancarBusinessException_quandoNovoGerenteNaoForMembroDoProjeto() {
 
+        UUID novoGerenteId = UUID.randomUUID();
+        Membro novoGerente = new Membro();
+        novoGerente.setId(novoGerenteId);
+        novoGerente.setNome("Futuro Gerente");
+        AtualizarProjetoDTO dadosParaAtualizar = new AtualizarProjetoDTO();
+        dadosParaAtualizar.setGerenteId(novoGerenteId);
+
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(membroService.buscarMembroPorID(novoGerenteId)).thenReturn(novoGerente);
+
+        assertThrows(BusinessException.class, () -> projetoService.atualizarProjeto(projetoId, dadosParaAtualizar));
+
+        verify(projetoRepository, never()).save(any(Projeto.class));
+    }
+
+    @Test
+    @DisplayName("alterarStatus deveria atualizar o status quando a transição for válida")
+    void alterarStatus_deveriaAlterarStatus_quandoTransicaoForValida() {
+        projeto.setStatus(StatusProjeto.EM_ANALISE);
+        StatusProjeto novoStatus = StatusProjeto.ANALISE_REALIZADA;
+
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
+
+        projetoService.alterarStatus(projetoId, novoStatus);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertEquals(novoStatus, projetoCaptor.getValue().getStatus());
+        assertNull(projetoCaptor.getValue().getDataFinalReal());
+    }
+
+    @Test
+    @DisplayName("alterarStatus deveria definir data final real quando o novo status for ENCERRADO")
+    void alterarStatus_deveriaAlterarStatusEDataFinal_quandoNovoStatusForEncerrado() {
+        projeto.setStatus(StatusProjeto.EM_ANDAMENTO);
+        StatusProjeto novoStatus = StatusProjeto.ENCERRADO;
+
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(projetoRepository.save(any(Projeto.class))).thenReturn(projeto);
+
+        projetoService.alterarStatus(projetoId, novoStatus);
+
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertEquals(novoStatus, projetoCaptor.getValue().getStatus());
+        assertEquals(LocalDate.now(), projetoCaptor.getValue().getDataFinalReal());
+    }
+
+    @Test
+    @DisplayName("alterarStatus deveria lançar BusinessException quando a transição for inválida")
+    void alterarStatus_deveriaLancarBusinessException_quandoTransicaoDeStatusForInvalida() {
+        projeto.setStatus(StatusProjeto.EM_ANALISE);
+        StatusProjeto novoStatus = StatusProjeto.ENCERRADO;
+
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+
+        assertThrows(BusinessException.class, () -> projetoService.alterarStatus(projetoId, novoStatus));
+    }
+
+    @Test
+    @DisplayName("listarProjetosPorFiltro deveria retornar página de projetos quando encontrados")
+    void listarProjetosPorFiltro_deveriaRetornarPaginaDeProjetos_quandoFiltrosCorresponderem() {
+        Pageable pageable = Pageable.unpaged();
+        Page<Projeto> paginaDeProjetos = new PageImpl<>(List.of(projeto));
+        when(projetoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(paginaDeProjetos);
+        when(projetoMapper.toResumoDTO(any(Projeto.class))).thenReturn(new ProjetoResumoDTO());
+
+        Page<ProjetoResumoDTO> resultado = projetoService.listarProjetosPorFiltro(new ProjetoFiltroDTO(), pageable);
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.getContent().size());
+    }
+
+    @Test
+    @DisplayName("listarProjetosPorFiltro deveria lançar NotFoundException quando nenhum projeto corresponder")
+    void listarProjetosPorFiltro_deveriaLancarNotFoundException_quandoNenhumProjetoCorresponder() {
+        Pageable pageable = Pageable.unpaged();
+        when(projetoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> projetoService.listarProjetosPorFiltro(new ProjetoFiltroDTO(), pageable));
+    }
+
+    @Test
+    @DisplayName("adicionarMembros deveria adicionar membros válidos ao projeto")
+    void adicionarMembros_deveriaAdicionarNovosMembros_quandoMembrosForemValidos() {
+        UUID membroId = UUID.randomUUID();
         Membro novoMembro = new Membro();
-        novoMembro.setId(UUID.randomUUID());
+        novoMembro.setId(membroId);
         novoMembro.setNome("Novo Membro");
         novoMembro.setAtribuicao(Atribuicao.FUNCIONARIO);
 
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-        when(membroService.buscarOuCriarMembroLocal(novoMembro.getId())).thenReturn(novoMembro);
+        AdicionarMembrosRequestDTO request = new AdicionarMembrosRequestDTO();
+        request.setMembrosIds(List.of(membroId));
 
-        doNothing().when(membroService).validarLimiteDeProjetosAtivos(novoMembro);
-        when(projetoRepository.save(any(Projeto.class))).thenReturn(projetoPadrao);
-        when(projetoMapper.toDetalhesDTO(any(Projeto.class), any(Risco.class))).thenReturn(new ProjetoDetalhesDTO());
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(membroService.buscarMembroPorID(membroId)).thenReturn(novoMembro);
+        when(projetoRepository.findProjetosAtivosPorMembro(membroId)).thenReturn(Collections.emptyList());
 
-        projetoService.adicionarMembros(List.of(novoMembro.getId()), projetoPadrao.getId());
+        projetoService.adicionarMembros(request, projetoId);
 
-        ArgumentCaptor<Projeto> captor = ArgumentCaptor.forClass(Projeto.class);
-        verify(projetoRepository).save(captor.capture());
-        assertTrue(captor.getValue().getMembros().contains(novoMembro));
-        assertEquals(2, captor.getValue().getMembros().size());
+        ArgumentCaptor<Projeto> projetoCaptor = ArgumentCaptor.forClass(Projeto.class);
+        verify(projetoRepository).save(projetoCaptor.capture());
+
+        assertTrue(projetoCaptor.getValue().getMembrosIds().contains(membroId));
+        assertEquals(2, projetoCaptor.getValue().getMembrosIds().size());
     }
 
     @Test
-    @DisplayName("Deve lançar BusinessException ao adicionar membro que não é FUNCIONARIO")
-    void adicionarMembros_deveLancarExcecao_quandoMembroNaoEFuncionario() {
+    @DisplayName("adicionarMembros deveria lançar BusinessException quando membro não for FUNCIONARIO")
+    void adicionarMembros_deveriaLancarBusinessException_quandoMembroNaoForFuncionario() {
+        UUID membroId = UUID.randomUUID();
         Membro novoMembro = new Membro();
-        novoMembro.setId(UUID.randomUUID());
+        novoMembro.setId(membroId);
+        novoMembro.setNome("Membro Gerente");
         novoMembro.setAtribuicao(Atribuicao.STAKEHOLDER);
 
-        when(projetoRepository.findByIdAndDeletedFalse(projetoPadrao.getId())).thenReturn(Optional.of(projetoPadrao));
-        when(membroService.buscarOuCriarMembroLocal(novoMembro.getId())).thenReturn(novoMembro);
+        AdicionarMembrosRequestDTO request = new AdicionarMembrosRequestDTO();
+        request.setMembrosIds(List.of(membroId));
 
-        assertThrows(BusinessException.class, () -> {
-            projetoService.adicionarMembros(List.of(novoMembro.getId()), projetoPadrao.getId());
-        });
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(membroService.buscarMembroPorID(membroId)).thenReturn(novoMembro);
+
+        assertThrows(BusinessException.class, () -> projetoService.adicionarMembros(request, projetoId));
+    }
+
+    @Test
+    @DisplayName("adicionarMembros deveria lançar BusinessException quando membro atingir máximo de projetos")
+    void adicionarMembros_deveriaLancarBusinessException_quandoMembroAtingirMaximoDeProjetos() {
+        UUID membroId = UUID.randomUUID();
+        Membro novoMembro = new Membro();
+        novoMembro.setId(membroId);
+        novoMembro.setNome("Membro Ocupado");
+        novoMembro.setAtribuicao(Atribuicao.FUNCIONARIO);
+
+        AdicionarMembrosRequestDTO request = new AdicionarMembrosRequestDTO();
+        request.setMembrosIds(List.of(membroId));
+
+        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
+        when(membroService.buscarMembroPorID(membroId)).thenReturn(novoMembro);
+        when(projetoRepository.findProjetosAtivosPorMembro(membroId))
+                .thenReturn(Collections.nCopies(10, new Projeto()));
+
+        assertThrows(BusinessException.class, () -> projetoService.adicionarMembros(request, projetoId));
     }
 }
