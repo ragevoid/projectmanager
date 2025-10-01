@@ -3,20 +3,18 @@ package com.desafio.projectmanager.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.desafio.projectmanager.dto.request.AdicionarMembrosRequestDTO;
 import com.desafio.projectmanager.dto.request.AtualizarProjetoDTO;
 import com.desafio.projectmanager.dto.request.ProjetoFiltroDTO;
 import com.desafio.projectmanager.dto.request.ProjetoRequestDTO;
@@ -43,76 +41,62 @@ public class ProjetoService {
     private final ProjetoRepository projetoRepository;
     private final ProjetoMapper projetoMapper;
     private final MembroService membroService;
-    private static final Logger logger = LoggerFactory.getLogger(ProjetoService.class);
 
     private static final BigDecimal ORCAMENTO_RISCO_BAIXO_LIMITE = new BigDecimal("100000.00");
     private static final BigDecimal ORCAMENTO_RISCO_ALTO_INICIO = new BigDecimal("500000.00");
     private static final long PRAZO_RISCO_BAIXO_MESES = 3;
     private static final long PRAZO_RISCO_ALTO_MESES = 6;
-    private static final long MAXIMO_MEMBROS = 9;
+    private static final long MAXIMO_MEMBROS = 10;
 
     public List<ProjetoResumoDTO> listarProjetos() {
         return projetoRepository.findAllByDeletedFalse().stream()
                 .map(projeto -> {
-                    Risco risco = calcularRisco(projeto);
-                    return projetoMapper.toResumoDTO(projeto, risco);
+                    return projetoMapper.toResumoDTO(projeto);
                 })
                 .collect(Collectors.toList());
     }
 
     public ProjetoDetalhesDTO encontrarPorId(UUID projetoId) {
-        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
-
-        Risco risco = calcularRisco(projeto);
-
-        return projetoMapper.toDetalhesDTO(projeto, risco);
+        Projeto projeto = encontrarEntidadePorId(projetoId);
+        return projetoMapper.toDetalhesDTO(projeto);
     }
 
     @Transactional
     public ProjetoDetalhesDTO criarProjeto(ProjetoRequestDTO projetoRequestDTO) {
+        Membro gerente = membroService.buscarMembroPorID(projetoRequestDTO.getGerenteId());
+        verificarMaximoProjetosPorMembro(gerente);
 
-        logger.info("A id od gerente é:{} ", projetoRequestDTO.getGerenteId());
-        Membro gerente = membroService.buscarMembroAPIPorId(projetoRequestDTO.getGerenteId());
-
-        List<Membro> membrosLista = new ArrayList<>();
-        membrosLista.add(gerente);
+        Set<UUID> membrosIdList = new HashSet<>();
+        membrosIdList.add(gerente.getId());
 
         Projeto projeto = projetoMapper.toEntity(projetoRequestDTO);
-        projeto.setGerente(gerente);
-
-        projeto.setMembros(new HashSet<>(membrosLista));
+        projeto.setGerenteId(gerente.getId());
+        projeto.setMembrosIds(membrosIdList);
+        projeto.setClassificacaoRisco(calcularRisco(projeto));
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
-        Risco risco = calcularRisco(projetoSalvo);
-        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
+        return projetoMapper.toDetalhesDTO(projetoSalvo);
     }
 
     @Transactional
     public void eliminarProjeto(UUID projetoId) {
-        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
-
+        Projeto projeto = encontrarEntidadePorId(projetoId);
         StatusProjeto status = projeto.getStatus();
-
         if (status == StatusProjeto.INICIADO || status == StatusProjeto.EM_ANDAMENTO
                 || status == StatusProjeto.ENCERRADO) {
             throw new BusinessException("Projeto com status '" + status + "' não pode ser excluído.");
         }
-
         projeto.setDeleted(true);
         projetoRepository.save(projeto);
     }
 
     @Transactional
     public ProjetoDetalhesDTO atualizarProjeto(UUID projetoId, AtualizarProjetoDTO dadosParaAtualizar) {
-        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new NotFoundException("Projeto não encontrado com ID: " + projetoId));
+        Projeto projeto = encontrarEntidadePorId(projetoId);
 
         if (projeto.getStatus() == StatusProjeto.ENCERRADO || projeto.getStatus() == StatusProjeto.CANCELADO) {
             throw new BusinessException("Não é possível alterar um projeto com status " + projeto.getStatus());
         }
-
         if (dadosParaAtualizar.getNome() != null) {
             projeto.setNome(dadosParaAtualizar.getNome());
         }
@@ -128,29 +112,25 @@ public class ProjetoService {
         if (dadosParaAtualizar.getOrcamento() != null) {
             projeto.setOrcamento(dadosParaAtualizar.getOrcamento());
         }
-
         if (dadosParaAtualizar.getGerenteId() != null) {
-            if (!dadosParaAtualizar.getGerenteId().equals(projeto.getGerente().getId())) {
-                Membro novoGerente = membroService.buscarOuCriarMembroLocal(dadosParaAtualizar.getGerenteId());
-
-                if (!projeto.getMembros().contains(novoGerente)) {
+            if (!dadosParaAtualizar.getGerenteId().equals(projeto.getGerenteId())) {
+                Membro novoGerente = membroService.buscarMembroPorID(dadosParaAtualizar.getGerenteId());
+                if (!projeto.getMembrosIds().contains(novoGerente.getId())) {
                     throw new BusinessException(
                             "Para ser gerente, o membro também deve fazer parte da equipe do projeto.");
                 }
-
-                projeto.setGerente(novoGerente);
+                verificarMaximoProjetosPorMembro(novoGerente);
+                projeto.setGerenteId(novoGerente.getId());
             }
         }
+        projeto.setClassificacaoRisco(calcularRisco(projeto));
         Projeto projetoSalvo = projetoRepository.save(projeto);
-
-        Risco risco = calcularRisco(projetoSalvo);
-        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
+        return projetoMapper.toDetalhesDTO(projetoSalvo);
     }
 
     @Transactional
     public ProjetoDetalhesDTO alterarStatus(UUID projetoId, StatusProjeto novoStatus) {
-        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
+        Projeto projeto = encontrarEntidadePorId(projetoId);
 
         StatusProjeto statusAtual = projeto.getStatus();
         if (!statusAtual.podeTransitarPara(novoStatus)) {
@@ -164,9 +144,7 @@ public class ProjetoService {
         }
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
-
-        Risco risco = calcularRisco(projetoSalvo);
-        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
+        return projetoMapper.toDetalhesDTO(projetoSalvo);
     }
 
     @Transactional
@@ -178,8 +156,7 @@ public class ProjetoService {
                 throw new NotFoundException("Projetos não encontrados com os filtros especificados.");
             }
             return paginaDeProjetos.map(projeto -> {
-                Risco risco = calcularRisco(projeto);
-                return projetoMapper.toResumoDTO(projeto, risco);
+                return projetoMapper.toResumoDTO(projeto);
             });
         } catch (Exception e) {
             throw new IllegalArgumentException("Error obtendo os Projetos: " + e.getMessage());
@@ -187,37 +164,32 @@ public class ProjetoService {
     }
 
     @Transactional
-    public ProjetoDetalhesDTO adicionarMembros(List<UUID> membroExternalIdList, UUID projetoId) {
-        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
-                .orElseThrow(() -> new NotFoundException("Projeto não encontrado com ID: " + projetoId));
+    public ProjetoDetalhesDTO adicionarMembros(AdicionarMembrosRequestDTO requestDTO, UUID projetoId) {
+        Projeto projeto = encontrarEntidadePorId(projetoId);
 
-        projeto = adicionarMembrosAProjeto(membroExternalIdList, projeto);
+        for (UUID membroId : requestDTO.getMembrosIds()) {
+            Membro membro = membroService.buscarMembroPorID(membroId);
+            if (membro.getAtribuicao() != Atribuicao.FUNCIONARIO) {
+                throw new BusinessException("Membro " + membro.getNome() + " não é FUNCIONARIO.");
+            }
+            verificarMaximoProjetosPorMembro(membro);
+            projeto.getMembrosIds().add(membroId);
+        }
 
-        Projeto projetoSalvo = projetoRepository.save(projeto);
-        Risco risco = calcularRisco(projetoSalvo);
-        return projetoMapper.toDetalhesDTO(projetoSalvo, risco);
+        projetoRepository.save(projeto);
+        return projetoMapper.toDetalhesDTO(projeto);
     }
 
-    private Projeto adicionarMembrosAProjeto(List<UUID> membroExternalIdList, Projeto projeto) {
-        Set<Membro> membrosAtuais = new HashSet<>(projeto.getMembros());
+    private void verificarMaximoProjetosPorMembro(Membro membro) {
+        List<Projeto> projetosAtivos = projetoRepository.findProjetosAtivosPorMembro(membro.getId());
+        if (projetosAtivos.size() >= MAXIMO_MEMBROS) {
+            throw new BusinessException("Membro " + membro.getNome() + " já está em 3 projetos ativos.");
+        }
+    }
 
-        for (UUID externalId : membroExternalIdList) {
-            Membro membroParaAdicionar = membroService.buscarOuCriarMembroLocal(externalId);
-            if (membrosAtuais.contains(membroParaAdicionar)) {
-                continue;
-            }
-            membroService.validarLimiteDeProjetosAtivos(membroParaAdicionar);
-            if (membroParaAdicionar.getAtribuicao() != Atribuicao.FUNCIONARIO) {
-                throw new BusinessException(
-                        "Apenas membros com atribuição 'FUNCIONARIO' podem ser associados a um projeto.");
-            }
-            membrosAtuais.add(membroParaAdicionar);
-        }
-        if (membrosAtuais.size() > MAXIMO_MEMBROS) {
-            throw new BusinessException(
-                    String.format("A operação excederia o limite de %d membros para o projeto.", MAXIMO_MEMBROS));
-        }
-        projeto.setMembros(membrosAtuais);
+    private Projeto encontrarEntidadePorId(UUID projetoId) {
+        Projeto projeto = projetoRepository.findByIdAndDeletedFalse(projetoId)
+                .orElseThrow(() -> new IllegalArgumentException("Projeto não encontrado com ID: " + projetoId));
         return projeto;
     }
 

@@ -48,7 +48,6 @@ public class ProjetoController {
         })
         public ResponseEntity<ProjetoDetalhesDTO> criarProjeto(
                         @Valid @RequestBody ProjetoRequestDTO projetoRequestDTO) {
-                System.out.println("EL id es: " + projetoRequestDTO.toString());
                 ProjetoDetalhesDTO projetoCriado = projetoService.criarProjeto(projetoRequestDTO);
                 return ResponseEntity.ok().body(projetoCriado);
         }
@@ -120,7 +119,7 @@ public class ProjetoController {
 
                         @Valid @RequestBody AdicionarMembrosRequestDTO request) {
 
-                ProjetoDetalhesDTO projetoAtualizado = projetoService.adicionarMembros(request.getMembrosIds(),
+                ProjetoDetalhesDTO projetoAtualizado = projetoService.adicionarMembros(request,
                                 projetoId);
                 return ResponseEntity.ok(projetoAtualizado);
         }

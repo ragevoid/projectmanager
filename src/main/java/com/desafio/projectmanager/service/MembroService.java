@@ -1,5 +1,6 @@
 package com.desafio.projectmanager.service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -7,62 +8,50 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.desafio.projectmanager.dto.response.MembroExternoDTO;
-import com.desafio.projectmanager.handler.exceptions.BusinessException;
+import com.desafio.projectmanager.dto.response.MembroMockadoDTO;
+import com.desafio.projectmanager.handler.exceptions.NotFoundException;
 import com.desafio.projectmanager.mapper.MembroMapper;
 import com.desafio.projectmanager.model.membro.Membro;
-import com.desafio.projectmanager.model.projeto.StatusProjeto;
-import com.desafio.projectmanager.repository.MembroRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class MembroService {
 
-    private final MembroMapper membroMapper;
     private final RestTemplate restTemplate;
-    private final MembroRepository membroRepository;
-    @Value("${membro.api.url}")
+    private final MembroMapper membroMapper;
+
+     @Value("${membro.api.url}")
     private String membroApiUrl;
 
+    public Membro criarMembro(Membro membro) {
+        MembroMockadoDTO dtoRequest = membroMapper.toDTO(membro);
+        MembroMockadoDTO dtoResponse =
+                restTemplate.postForObject(membroApiUrl, dtoRequest, MembroMockadoDTO.class);
 
-    public Membro buscarMembroAPIPorId(UUID idMockado) {
+        return membroMapper.toEntity(dtoResponse);
+    }
 
+    public Membro buscarMembroPorID(UUID id) {
         try {
-            String url = membroApiUrl + "/" + idMockado;
-            MembroExternoDTO membro = restTemplate.getForObject(url, MembroExternoDTO.class);
+            String url = membroApiUrl + "/" + id;
+            MembroMockadoDTO membro = restTemplate.getForObject(url, MembroMockadoDTO.class);
             return membroMapper.toEntity(membro);
 
         } catch (Exception e) {
-            throw new IllegalArgumentException("Membro não encontrado");
+            throw new NotFoundException("Membro não encontrado");
         }
     }
+    public List<Membro> ListarTodosMembros() {
+        MembroMockadoDTO[] dtoArray =
+                restTemplate.getForObject(membroApiUrl, MembroMockadoDTO[].class);
 
-    @Transactional
-    public Membro buscarOuCriarMembroLocal(UUID idExterno) {
-        return membroRepository.findByIdMockado(idExterno)
-            .orElseGet(() -> {                
-                Membro novoMembro = buscarMembroAPIPorId(idExterno);
-                return membroRepository.save(novoMembro);
-            });
+        if (dtoArray == null) return List.of();
+
+        return Arrays.stream(dtoArray)
+                .map(membroMapper::toEntity)
+                .toList();
     }
-
-    public void validarLimiteDeProjetosAtivos(Membro membro) {
-        List<StatusProjeto> statusInativos = List.of(StatusProjeto.ENCERRADO, StatusProjeto.CANCELADO);
-        
-        Long projetosAtivos = membroRepository.countProjetosAtivosPorMembro(membro.getId(), statusInativos);
-
-        if (projetosAtivos >= 3) {
-            throw new BusinessException(
-                String.format("Alocação negada: O membro '%s' já está alocado em %d projetos ativos (limite de 3).",
-                    membro.getNome(), projetosAtivos)
-            );
-        }
-    }
-
-
-
 
 }

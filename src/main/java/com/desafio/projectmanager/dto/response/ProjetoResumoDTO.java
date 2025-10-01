@@ -12,6 +12,6 @@ public class ProjetoResumoDTO {
     private UUID id;
     private String nome;
     private StatusProjeto status;
-    private String gerenteNome; 
+    private UUID gerenteId; 
     private Risco classificacaoRisco; 
 }

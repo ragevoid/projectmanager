@@ -21,7 +21,6 @@ public class ProjetoDetalhesDTO {
     private String descricao;
     private StatusProjeto status;
     private Risco classificacaoRisco; 
-    private MembroResumoDTO gerente; 
-    private Set<MembroResumoDTO> membros;
-    
+    private UUID gerenteId; 
+    private Set<UUID> membrosIds;
 }

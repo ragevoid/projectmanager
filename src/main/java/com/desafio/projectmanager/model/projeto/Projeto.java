@@ -6,40 +6,34 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import com.desafio.projectmanager.model.membro.Membro;
-
-import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "projeto") 
+@Table(name = "projeto")
 @NoArgsConstructor
 @Getter
 @Setter
 public class Projeto {
-   @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
     private String nome;
-    
+
     @Column(nullable = false)
     private LocalDate dataInicio;
 
@@ -52,27 +46,24 @@ public class Projeto {
     @Column(nullable = false)
     private BigDecimal orcamento;
 
-    @Column(nullable = false, length = 5000) 
+    @Column(nullable = false, length = 5000)
     private String descricao;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING) 
+    @Enumerated(EnumType.STRING)
     private StatusProjeto status = StatusProjeto.EM_ANALISE;
 
-    @Transient
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private Risco classificacaoRisco;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "gerente_id", nullable = false) 
-    private Membro gerente;
+    @Column(name = "gerente_id")
+    private UUID gerenteId;
 
-    @ManyToMany(cascade=CascadeType.PERSIST )
-    @JoinTable(
-        name = "projeto_membros",
-        joinColumns = @JoinColumn(name = "projeto_id"),
-        inverseJoinColumns = @JoinColumn(name = "membro_id")
-    )
-    private Set<Membro> membros = new HashSet<>();
+    @ElementCollection
+    @CollectionTable(name = "projeto_membros", joinColumns = @JoinColumn(name = "projeto_id"))
+    @Column(name = "membro_id")
+    private Set<UUID> membrosIds = new HashSet<>();
 
     @Column(nullable = false)
     private Boolean deleted = false;

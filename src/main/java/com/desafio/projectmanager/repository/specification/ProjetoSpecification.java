@@ -69,7 +69,7 @@ public class ProjetoSpecification {
             }
 
             if (filter.getGerenteId() != null) {
-                predicates.add(cb.equal(root.get("gerente").get("id"), filter.getGerenteId()));
+                predicates.add(cb.equal(root.get("gerenteId"), filter.getGerenteId()));
             }
 
             if (filter.getDescricao() != null) {

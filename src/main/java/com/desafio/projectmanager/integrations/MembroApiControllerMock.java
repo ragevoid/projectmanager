@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.desafio.projectmanager.dto.response.MembroExternoDTO;
+import com.desafio.projectmanager.dto.response.MembroMockadoDTO;
+import com.desafio.projectmanager.model.membro.Atribuicao;
 
 import jakarta.annotation.PostConstruct;
 
@@ -25,25 +26,22 @@ import jakarta.annotation.PostConstruct;
 @RequestMapping("/mock-api/membros")
 public class MembroApiControllerMock {
 
-    private static final Map<UUID, MembroExternoDTO> membrosMockados = new HashMap<>();
+    private static final Map<UUID, MembroMockadoDTO> membrosMockados = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(MembroApiControllerMock.class);
 
     @PostConstruct
     public void init() {
 
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "João Silva", "CONVIDADO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Maria Santos", "FUNCIONARIO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Carlos Pereira", "FUNCIONARIO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Ana Souza", "FUNCIONARIO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Ashley Saint", "FUNCIONARIO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Ricardo Gonzalez", "FUNCIONARIO"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Juan Pereira", "STAKEHOLDER"));
-        criarMembro(new MembroExternoDTO(UUID.randomUUID(), "Maria Rodrigues", "CONVIDADO"));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "João Silva", Atribuicao.CONVIDADO));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Ashley Saint", Atribuicao.FUNCIONARIO));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Ricardo Gonzalez", Atribuicao.FUNCIONARIO));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Juan Pereira", Atribuicao.STAKEHOLDER));
+        criarMembro(new MembroMockadoDTO(UUID.randomUUID(), "Maria Rodrigues", Atribuicao.CONVIDADO));
         logger.info("API Mock de Membros populada com {} usuários.", membrosMockados.size());
     }
 
     @PostMapping
-    public ResponseEntity<MembroExternoDTO> criarMembro(@RequestBody MembroExternoDTO novoMembro) {
+    public ResponseEntity<MembroMockadoDTO> criarMembro(@RequestBody MembroMockadoDTO novoMembro) {
         UUID id = UUID.randomUUID();
         novoMembro.setId(id);
         membrosMockados.put(id, novoMembro);
@@ -52,8 +50,8 @@ public class MembroApiControllerMock {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MembroExternoDTO> getMembroPorId(@PathVariable UUID id) {
-        MembroExternoDTO membro = membrosMockados.get(id);
+    public ResponseEntity<MembroMockadoDTO> getMembroPorId(@PathVariable UUID id) {
+        MembroMockadoDTO membro = membrosMockados.get(id);
         if (membro != null) {
             logger.info("MOCK API: Buscando membro com ID {}... Encontrado: {}", id, membro.getNome());
             return ResponseEntity.ok(membro);
@@ -64,7 +62,7 @@ public class MembroApiControllerMock {
     }
 
     @GetMapping
-    public ResponseEntity<List<MembroExternoDTO>> getAllMembros() {
+    public ResponseEntity<List<MembroMockadoDTO>> getAllMembros() {
         return ResponseEntity.ok(new ArrayList<>(membrosMockados.values()));
     }
 }

@@ -24,7 +24,6 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().permitAll()
             )
-            // Habilita a autenticação HTTP Basic
             .httpBasic(Customizer.withDefaults());
         return http.build();
     }
