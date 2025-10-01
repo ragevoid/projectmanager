@@ -6,7 +6,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,27 +82,6 @@ class ProjetoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(projetoDetalhesDTO.getId().toString())))
                 .andExpect(jsonPath("$.nome", is(projetoDetalhesDTO.getNome())));
-    }
-
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
-    @DisplayName("encontrarPorId deveria retornar Status 200 e o DTO do projeto quando ID existir")
-    void encontrarPorId_deveriaRetornarStatus200EOProjeto_quandoIdExistir() throws Exception {
-        when(projetoService.encontrarPorId(projetoId)).thenReturn(projetoDetalhesDTO);
-
-        mockMvc.perform(get("/projeto/search/{id}", projetoId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(projetoId.toString())));
-    }
-
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN", "USER"})
-    @DisplayName("encontrarPorId deveria retornar Status 404 quando ID não existir")
-    void encontrarPorId_deveriaRetornarStatus404_quandoIdNaoExistir() throws Exception {
-        when(projetoService.encontrarPorId(projetoId)).thenThrow(new NotFoundException("Projeto não encontrado"));
-
-        mockMvc.perform(get("/projeto/search/{id}", projetoId))
-                .andExpect(status().isNotFound());
     }
     
     @Test

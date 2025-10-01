@@ -15,6 +15,10 @@ public class ProjetoSpecification {
         return (root, query, cb) -> {
 
             List<Predicate> predicates = new ArrayList<>();
+            if (filter.getProjetoId() != null) {
+                predicates.add(cb.equal(root.get("id"), filter.getProjetoId()));
+            }
+
             if (filter.getNome() != null) {
                predicates.add(cb.like(cb.lower(root.get("nome")), "%" + filter.getNome().toLowerCase() + "%"));
             }
@@ -75,6 +79,8 @@ public class ProjetoSpecification {
             if (filter.getDescricao() != null) {
                 predicates.add(cb.equal(root.get("descricao"), filter.getDescricao()));
             }
+
+            predicates.add(cb.equal(root.get("deleted"), false));
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };

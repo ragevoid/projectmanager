@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,18 +48,6 @@ public class ProjetoService {
     private static final long MAXIMO_MEMBROS = 10;
     private static final long MAXIMO_PROJETOS = 3;
 
-    public List<ProjetoResumoDTO> listarProjetos() {
-        return projetoRepository.findAllByDeletedFalse().stream()
-                .map(projeto -> {
-                    return projetoMapper.toResumoDTO(projeto);
-                })
-                .collect(Collectors.toList());
-    }
-
-    public ProjetoDetalhesDTO encontrarPorId(UUID projetoId) {
-        Projeto projeto = encontrarEntidadePorId(projetoId);
-        return projetoMapper.toDetalhesDTO(projeto);
-    }
 
     @Transactional
     public ProjetoDetalhesDTO criarProjeto(ProjetoRequestDTO projetoRequestDTO) {

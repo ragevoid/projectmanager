@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,18 +49,6 @@ public class ProjetoController {
                         @Valid @RequestBody ProjetoRequestDTO projetoRequestDTO) {
                 ProjetoDetalhesDTO projetoCriado = projetoService.criarProjeto(projetoRequestDTO);
                 return ResponseEntity.ok().body(projetoCriado);
-        }
-
-        @GetMapping("search/{id}")
-        @Operation(summary = "Busca um projeto por ID")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Projeto encontrado"),
-                        @ApiResponse(responseCode = "404", description = "Projeto não encontrado com o ID fornecido")
-        })
-        public ResponseEntity<ProjetoDetalhesDTO> encontrarPorId(
-                        @Parameter(description = "ID do projeto a ser buscado", required = true) @PathVariable UUID id) {
-                ProjetoDetalhesDTO projeto = projetoService.encontrarPorId(id);
-                return ResponseEntity.ok(projeto);
         }
 
         @PostMapping("/search")

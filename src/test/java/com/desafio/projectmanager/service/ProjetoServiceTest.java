@@ -92,41 +92,6 @@ class ProjetoServiceTest {
     }
 
     @Test
-    @DisplayName("listarProjetos deveria retornar lista de DTOs quando existirem projetos")
-    void listarProjetos_deveriaRetornarListaDeProjetosResumoDTO_quandoExistiremProjetos() {
-        when(projetoRepository.findAllByDeletedFalse()).thenReturn(List.of(projeto));
-        when(projetoMapper.toResumoDTO(any(Projeto.class))).thenReturn(new ProjetoResumoDTO());
-
-        List<ProjetoResumoDTO> resultado = projetoService.listarProjetos();
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        verify(projetoRepository).findAllByDeletedFalse();
-        verify(projetoMapper).toResumoDTO(projeto);
-    }
-
-    @Test
-    @DisplayName("encontrarPorId deveria retornar DTO de detalhes quando projeto existir")
-    void encontrarPorId_deveriaRetornarProjetoDetalhesDTO_quandoProjetoExistir() {
-        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.of(projeto));
-        when(projetoMapper.toDetalhesDTO(projeto)).thenReturn(projetoDetalhesDTO);
-
-        ProjetoDetalhesDTO resultado = projetoService.encontrarPorId(projetoId);
-
-        assertNotNull(resultado);
-        assertEquals(projetoDetalhesDTO.getId(), resultado.getId());
-        verify(projetoRepository).findByIdAndDeletedFalse(projetoId);
-    }
-
-    @Test
-    @DisplayName("encontrarPorId deveria lançar NotFoundException quando projeto não existir")
-    void encontrarPorId_deveriaLancarNotFoundException_quandoProjetoNaoExistir() {
-        when(projetoRepository.findByIdAndDeletedFalse(projetoId)).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> projetoService.encontrarPorId(projetoId));
-    }
-
-    @Test
     @DisplayName("criarProjeto deveria salvar e retornar o projeto com risco MEDIO")
     void criarProjeto_deveriaCriarEretornarProjeto_quandoDadosForemValidosComRiscoMedio() {
         when(membroService.buscarMembroPorID(gerenteId)).thenReturn(gerente);

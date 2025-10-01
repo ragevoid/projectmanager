@@ -11,6 +11,8 @@ import lombok.Data;
 
 @Data
 public class ProjetoFiltroDTO {
+    private UUID projetoId;
+    
     private String nome;
 
     private BigDecimal orcamentoMin;
