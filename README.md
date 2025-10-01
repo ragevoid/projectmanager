@@ -87,7 +87,7 @@ Antes de iniciar, você precisa criar os arquivos de configuração para as cred
 ### Execução
 1.  Clone o repositório:
     ```bash
-    git clone [URL_DO_SEU_REPOSITÓRIO]
+    git clone https://github.com/ragevoid/projectmanager.git
     ```
 2.  Navegue até o diretório do projeto.
 3.  Execute a construção das imagens e inicie os containers:
