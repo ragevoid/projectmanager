@@ -6,8 +6,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +17,6 @@ import org.springframework.web.client.RestTemplate;
 
 import com.desafio.projectmanager.dto.response.MembroMockadoDTO;
 import com.desafio.projectmanager.handler.exceptions.NotFoundException;
-import com.desafio.projectmanager.integrations.MembroApiControllerMock;
 import com.desafio.projectmanager.mapper.MembroMapper;
 import com.desafio.projectmanager.model.membro.Membro;
 
@@ -30,7 +27,6 @@ public class MembroService {
 
     private final RestTemplate restTemplate;
     private final MembroMapper membroMapper;
-    private static final Logger logger = LoggerFactory.getLogger(MembroApiControllerMock.class);
 
     @Value("${membro.api.url}")
     private String membroApiUrl;
