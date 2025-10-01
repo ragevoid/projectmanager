@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.desafio</groupId>
 	<artifactId>projectmanager</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>3.3.3-SNAPSHOT</version>
 	<name>projectmanager</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
@@ -49,15 +49,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>

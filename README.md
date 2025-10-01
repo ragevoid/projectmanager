@@ -1,68 +1,99 @@
-# Project Manager 
-Sistema para gerenciar o Portfólio de Projetos.
+# Project Manager
 
-## Descripção do Projeto
-**Project Manager** permite o acompanhamento completo do ciclo de vida de projetos, desde a análise de viabilidade até a finalização, incluindo gerenciamento de equipe, orçamento e risco.
+## Descrição do Projeto
+**Project Manager** é um sistema para o gerenciamento do ciclo de vida de projetos. Ele oferece ferramentas para acompanhar projetos desde a análise de viabilidade até a sua conclusão, incluindo o gerenciamento de equipe, orçamento e riscos.
 
-## Entidades
-* **Membro** Parcialemte Mockado
-    * nome
-    * atribuicao
-    * projetos
+O sistema se integra com uma API externa (mockada) para a gestão de membros da equipe, simulando um ambiente de microserviços.
 
-* **Empresa**
-    * nome
-    * membros
-    * projetos
-    * deleted
-    
-* **Projeto**
-    * nome
-    * dataInicio
-    * dataFinalPrevisao
-    * dataFinalReal
-    * orcamento
-    * descricao
-    * status     
-    * gerente
-    * membros
-    * empresa
-    * deleted
-    * classificacaoRisco(Não será Persistido)
+---
 
 ## Regras de Negócio
-* **O sistema deve permitir CRUD completo de projetos com os seguintes campos:**
-    * Nome
-    * Data de início
-    * Previsão de término
-    * Data real de término
-    * Orçamento total (BigDecimal)
-    * Descrição
-    * Gerente responsável (relacionamento com a entidade membro)
-    * Status atual
 
-* **A classificação de risco deve ser calculada dinamicamente com base nas seguintes regras:**
-    * Baixo risco: orçamento até R$ 100.000 e prazo ≤ 3 meses
-    * Médio risco: orçamento entre R$ 100.001 e R$ 500.000 ou prazo entre 3 a 6 meses
-    * Alto risco: orçamento acima de R$ 500.000 ou prazo superior a 6 meses
+### Gerenciamento de Projetos
+O sistema permite o **CRUD completo** (Criar, Ler, Atualizar, Deletar) de projetos com os seguintes campos:
+* `Nome`
+* `Data de início`
+* `Previsão de término`
+* `Data real de término`
+* `Orçamento total`
+* `Descrição`
+* `Gerente responsável`
+* `Status atual`
 
-* **Os status possíveis dos projetos são fixos (não cadastráveis) e seguem esta ordem:**
-    * Em análise → análise realizada → análise aprovada → iniciado → planejado → em andamento → encerrado
-    * Com a exceção de cancelado, que pode ser aplicado a qualquer momento.
-    * Regra extra: a transição de status deve respeitar a sequência lógica. Não é permitido pular etapas.
+### Classificação de Risco
+O risco do projeto é calculado automaticamente com base em regras predefinidas:
+* **Baixo Risco:** Orçamento até R$ 100.000 e duração do projeto menor ou igual a 3 meses.
+* **Médio Risco:** Orçamento entre R$ 100.001 e R$ 500.000 OU duração entre 3 e 6 meses.
+* **Alto Risco:** Orçamento acima de R$ 500.000 OU duração superior a 6 meses.
 
-* **Se o status estiver em iniciado, em andamento ou encerrado, o projeto não poderá ser excluído.**
-* **O cadastro de membros não deve ser feito diretamente.**
+### Status do Projeto
+O status do projeto segue um fluxo de transição estrito:
+* `Em análise` → `Análise realizada` → `Análise aprovada` → `Iniciado` → `Planejado` → `Em andamento` → `Encerrado`
+* O status `Cancelado` pode ser aplicado a qualquer momento.
+* A exclusão de um projeto não é permitida se ele estiver nos status `Iniciado`, `Em andamento` ou `Encerrado`.
 
-    * Deve ser disponibilizada uma API REST externa (mockada) para criar e consultar membros, enviando nome e atribuição (cargo).
-* **O sistema deve permitir associar membros aos projetos. Apenas membros com a atribuição “funcionário” podem ser associados.**
+### Gerenciamento de Membros
+* O cadastro de membros é feito exclusivamente através de uma **API REST externa mockada**.
+* Apenas membros com a atribuição **“funcionário”** podem ser associados a um projeto.
+* Cada projeto pode ter entre **1 e 10 membros** alocados.
+* Um membro não pode estar alocado em mais de **3 projetos simultaneamente** com status diferente de `Encerrado` ou `Cancelado`.
 
-* **Cada projeto deve permitir a alocação de no mínimo 1 e no máximo 10 membros. Um membro não pode estar alocado em mais de 3 projetos simultaneamente com status diferente de encerrado ou cancelad**
+### Relatórios
+Um endpoint de relatório está disponível para gerar um resumo do portfólio, incluindo:
+* Quantidade de projetos por status.
+* Total orçado por status.
+* Média de duração dos projetos `Encerrados`.
+* Total de membros únicos alocados em projetos.
 
-* **Adicionar um endpoint para gerar um relatório resumido do portfólio contendo:**
-    * Quantidade de projetos por status
-    * Total orçado por status
-    * Média de duração dos projetos encerrados
-    * Total de membros únicos alocados
+---
 
-* **O sistema deve permitir associar membros aos projetos. Apenas membros com a atribuição “funcionário” podem ser associados.**
+## Princípios de Desenvolvimento
+O projeto foi desenvolvido seguindo as seguintes boas práticas:
+* **Princípios SOLID**
+* **Clean Code**
+
+---
+
+## Como Rodar e Testar o Projeto
+
+### Pré-requisitos
+* Docker e Docker Compose
+* Java JDK 17+
+
+### Configuração
+Antes de iniciar, você precisa criar os arquivos de configuração para as credenciais do banco de dados PostgreSQL.
+
+* **Para uso local (sem Docker)**:
+    Crie o arquivo `src/main/resources/application-local.properties` e adicione as seguintes linhas, substituindo pelas suas credenciais:
+    ```properties
+    spring.datasource.username=seu_usuario
+    spring.datasource.password=sua_senha
+    ```
+    
+* **Para uso com Docker**:
+    Crie o arquivo `.env` na raiz do projeto e adicione suas credenciais:
+    ```env
+    POSTGRES_USER=seu_usuario
+    POSTGRES_PASSWORD=sua_senha
+    ```
+
+### Execução
+1.  Clone o repositório:
+    ```bash
+    git clone [URL_DO_SEU_REPOSITÓRIO]
+    ```
+2.  Navegue até o diretório do projeto.
+3.  Execute a construção das imagens e inicie os containers:
+    ```bash
+    docker-compose build
+    docker-compose up -d
+    ```
+
+### Testando o Projeto
+Com a aplicação em execução, você pode acessar a documentação completa dos endpoints via **Swagger**.
+* Abra seu navegador e navegue para: `http://localhost:3333/swagger-ui.html`
+
+A API mockada de membros estará disponível em `http://localhost:3333/mock-api/membros`.
+Existe um "Usuario" criado dinamicamente em memoria para garantir Security com Basic Authorization: 
+ * username: admin,  
+ * password: admin123
